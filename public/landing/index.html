@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nunis - Sentí tu día, entendé tu camino</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;family=Outfit:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-background": "#1c1b1b",
+                        "surface-container-low": "#f7f2f2",
+                        "on-surface-variant": "#474554",
+                        "primary-fixed-dim": "#c6bfff",
+                        "secondary-container": "#a19afd",
+                        "surface-container-high": "#ece7e7",
+                        "tertiary-fixed-dim": "#c7c3e2",
+                        "secondary-fixed": "#e3dfff",
+                        "secondary-fixed-dim": "#c5c0ff",
+                        "primary-fixed": "#e4dfff",
+                        "surface-container": "#f1edec",
+                        "on-primary-fixed": "#160066",
+                        "secondary": "#5952af",
+                        "on-tertiary-container": "#f9f5ff",
+                        "on-primary-container": "#faf6ff",
+                        "tertiary": "#585670",
+                        "tertiary-container": "#716e8a",
+                        "on-surface": "#1c1b1b",
+                        "outline": "#787586",
+                        "on-tertiary-fixed": "#1b1930",
+                        "on-secondary-fixed-variant": "#413996",
+                        "surface-variant": "#e6e1e1",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#e4dfff",
+                        "surface": "#fdf8f8",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#140067",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#46445d",
+                        "background": "#fdf8f8",
+                        "inverse-primary": "#c6bfff",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#352c8a",
+                        "primary-container": "#6c5ce7",
+                        "inverse-on-surface": "#f4f0ef",
+                        "surface-container-highest": "#e6e1e1",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#5341cd",
+                        "surface-tint": "#5847d2",
+                        "inverse-surface": "#313030",
+                        "outline-variant": "#c8c4d7",
+                        "error": "#ba1a1a",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#ddd9d8",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#fdf8f8",
+                        "on-primary-fixed-variant": "#4029ba"
+                    },
+                    spacing: {
+                        "section-padding-h": "24px",
+                        "section-padding-v": "120px",
+                        "gutter": "32px",
+                        "stack-md": "16px",
+                        "stack-xl": "64px",
+                        "stack-sm": "8px",
+                        "stack-lg": "32px",
+                        "container-max": "1280px"
+                    },
+                    fontFamily: {
+                        "headline-lg": ["Playfair Display"],
+                        "body-sm": ["Outfit"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "body-md": ["Outfit"],
+                        "headline-xl": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "body-lg": ["Outfit"],
+                        "display-lg": ["Playfair Display"],
+                        "label-md": ["Outfit"],
+                        "label-lg": ["Outfit"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        :root {
+            --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .reveal { 
+            opacity: 0; 
+            transform: translateY(40px); 
+            transition: opacity 0.8s var(--ease-premium), transform 0.8s var(--ease-premium); 
+        }
+        .reveal.active { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+        
+        .stagger-1 { transition-delay: 0.1s; }
+        .stagger-2 { transition-delay: 0.2s; }
+        .stagger-3 { transition-delay: 0.3s; }
+        .stagger-4 { transition-delay: 0.4s; }
+        .stagger-5 { transition-delay: 0.5s; }
+        .stagger-6 { transition-delay: 0.6s; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(.33); }
+            80%, 100% { opacity: 0; }
+        }
+        .pulse-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #6c5ce7;
+            animation: pulse-ring 1.5s var(--ease-premium) infinite;
+        }
+
+        /* Floating Nav State */
+        nav#floating-nav {
+            transition: all 0.5s var(--ease-premium);
+        }
+        nav#floating-nav.scrolled {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        /* Shimmer effect for buttons */
+        .btn-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-shimmer::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            transition: 0.6s;
+        }
+        .btn-shimmer:hover::after {
+            left: 100%;
+        }
+
+        /* Ambient Float */
+        @keyframes ambient-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        .floating-mockup {
+            animation: ambient-float 6s ease-in-out infinite;
+        }
+        .floating-mockup-delay-1 { animation-delay: 1s; }
+        .floating-mockup-delay-2 { animation-delay: 2s; }
+
+        /* Split Text Simulation */
+        .split-text span {
+            display: inline-block;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s var(--ease-premium);
+        }
+        .active .split-text span {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(-45deg, #6c5ce7, #a19afd, #5341cd, #e3dfff);
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+        }
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .fan-mockup { transition: transform 1.2s var(--ease-premium); }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- 1. HERO -->
+<section class="relative h-screen w-full overflow-hidden flex flex-col justify-center items-center">
+<!-- Background Image with Parallax -->
+<div class="absolute inset-0 z-0" id="hero-parallax">
+<img alt="Mujer sonriendo mientras usa su celular" class="w-full h-[120%] object-cover absolute top-0 left-0" src="https://lh3.googleusercontent.com/aida/AP1WRLtTfYtCtD1P1eb147i0ab-qjyKLQ1d8Mt_zAHOVZcAcX43AkUA9DlDgUqEy2gaG88QxhjpNINDbNVK1L59l09uHaTS_fN5DbgHymvki-7eK5MzApjV_y4FTVKMxQw-0u7m35yt68Je106D_mM2TLg1cr670ky3AYvxlMo2idfj5Bo_8sq_H0dbCCsyGvQQhdXQZh2N0RD5SJaIZmMJ9rzd37nyL71MFEnIZ1jIcn0RbUUtzeDfkF9_jF7Px"/>
+<div class="absolute inset-0 bg-black/30"></div>
+</div>
+<!-- Floating Nav -->
+<nav class="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-5xl rounded-full bg-white/40 backdrop-blur-md border border-white/20 shadow-lg flex justify-between items-center px-8 py-3 z-50" id="floating-nav">
+<div class="flex items-center gap-2">
+<img alt="Nunis Logo" class="h-8 w-auto" src="nunis-logo.jpg"/>
+</div>
+<div class="hidden md:flex items-center gap-8 font-label-lg text-label-lg">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#features">Features</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#showcase">Showcase</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#pros">For Professionals</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+<a href="/register" class="bg-primary text-white px-6 py-2 rounded-full font-label-lg text-label-lg hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 btn-shimmer inline-block">
+            Comenzar
+        </a>
+</nav>
+<!-- Hero Content -->
+<div class="relative z-10 text-center px-6 max-w-4xl reveal active">
+<h1 class="text-white font-headline-xl text-headline-xl md:text-display-lg italic leading-tight split-text">
+<span>Sentí</span> <span>tu</span> <span>día.</span><br/>
+<span>Entendé</span> <span>tu</span> <span>camino.</span>
+</h1>
+<p class="text-white/90 font-body-lg text-body-lg mt-8 reveal stagger-2">
+            Nunis es el diario inteligente que conecta tus emociones con patrones profundos.
+        </p>
+<div class="mt-12 reveal stagger-3">
+<a class="bg-white text-primary px-10 py-4 rounded-full font-label-lg text-label-lg hover:scale-110 active:scale-95 transition-all shadow-xl inline-flex items-center gap-2 btn-shimmer" href="/register">
+                Comenzar gratis <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 2. STAT BAR -->
+<section class="py-20 bg-surface border-b border-outline-variant/30">
+<div class="max-w-container-max mx-auto px-section-padding-h flex flex-wrap justify-center gap-12 md:gap-24">
+<div class="text-center reveal stagger-1">
+<div class="font-headline-md text-headline-md text-primary" data-counter="10000">0</div>
+<div class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase mt-2">usuarios activos</div>
+</div>
+<div class="text-center reveal stagger-2">
+<div class="font-headline-md text-headline-md text-primary" data-target="4.9">0.0</div>
+<div class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase mt-2">valoración</div>
+</div>
+<div class="text-center reveal stagger-3">
+<div class="font-headline-md text-headline-md text-primary" data-counter="50">0</div>
+<div class="font-label-lg text-label-lg text-on-surface-variant tracking-wider uppercase mt-2">profesionales</div>
+</div>
+</div>
+</section>
+<!-- 3. FEATURES -->
+<section class="py-section-padding-v bg-white" id="features">
+<div class="max-w-container-max mx-auto px-section-padding-h">
+<div class="text-center mb-stack-xl reveal">
+<h2 class="font-headline-lg text-headline-lg text-on-background">Tu bienestar, a tu manera</h2>
+<div class="w-12 h-1 bg-primary mx-auto mt-4 rounded-full"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Feature Card 1 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-1 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">mood</span>
+<h3 class="font-headline-md text-headline-md mb-4">Mood Tracking</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Registrá tus emociones en segundos con una interfaz intuitiva y minimalista.</p>
+</div>
+<!-- Feature Card 2 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-2 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">insights</span>
+<h3 class="font-headline-md text-headline-md mb-4">Insights inteligentes</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Nuestra IA detecta patrones que podrías pasar por alto, ayudándote a entenderte mejor.</p>
+</div>
+<!-- Feature Card 3 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-3 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">edit_note</span>
+<h3 class="font-headline-md text-headline-md mb-4">Journaling guiado</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Prompts personalizados para esos días en los que no sabés por dónde empezar.</p>
+</div>
+<!-- Feature Card 4 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-4 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">tune</span>
+<h3 class="font-headline-md text-headline-md mb-4">Personalizable</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Adaptá las etiquetas y categorías a tu propio lenguaje y necesidades.</p>
+</div>
+<!-- Feature Card 5 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-5 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">encrypted</span>
+<h3 class="font-headline-md text-headline-md mb-4">Encriptado E2E</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Tus pensamientos son solo tuyos. Seguridad de grado bancario en cada entrada.</p>
+</div>
+<!-- Feature Card 6 -->
+<div class="bg-surface p-8 rounded-[24px] reveal stagger-6 border border-outline-variant/20 hover:shadow-2xl hover:-translate-y-2 transition-all group cursor-default">
+<span class="material-symbols-outlined text-4xl text-primary mb-6 group-hover:animate-bounce transition-transform">psychology_alt</span>
+<h3 class="font-headline-md text-headline-md mb-4">Para tu terapeuta</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Exportá resúmenes visuales para que tus sesiones sean mucho más productivas.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. APP SHOWCASE -->
+<section class="py-section-padding-v bg-surface-container-low overflow-hidden" id="showcase">
+<div class="max-w-container-max mx-auto px-section-padding-h text-center mb-24">
+<h2 class="font-headline-lg text-headline-lg text-on-background reveal">Diseñada para sentirse como un diario real</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-4 reveal stagger-1">Sin distracciones, solo vos y tu bienestar.</p>
+</div>
+<div class="relative flex justify-center items-center h-[500px] md:h-[700px] reveal">
+<!-- Mockups with Floating Animation -->
+<div class="fan-mockup fan-left w-[220px] md:w-[320px] floating-mockup">
+<div class="bg-on-background rounded-[40px] p-3 shadow-2xl border-4 border-outline">
+<img class="rounded-[32px] w-full aspect-[9/19.5] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqo8FlgMoyD-5faH4ieq3-7KhfZbkdsS3CbgPQUQwHN6jrv17A3ujJWOQUEBGiF3Vi3IIgSPb4mOMrDIrAMi6BCqlnZ4Tqk2rCk8TZXeL7X080g816UXybQ_DYMPLSp526j2FiZxNrpHdWtrfpxt-wLvV7q3j6_we6GlkgL9kbwxU1fMUEXuhc19Tn1BejR-DpA7Y-sBlHchpRV_zImx_FUbsWPka26Dx1OTn0reQBVW1CpdWnS0zAaY4K8j8Te8SeZ8u3XkIF0JJ0"/>
+</div>
+</div>
+<div class="fan-mockup fan-center w-[240px] md:w-[350px] z-20 floating-mockup floating-mockup-delay-1">
+<div class="bg-on-background rounded-[48px] p-4 shadow-[0_32px_64px_rgba(0,0,0,0.2)] border-4 border-outline">
+<img class="rounded-[36px] w-full aspect-[9/19.5] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQMZxk5bTKTUSZLELEoI5VakdmyivyeCXbYGjSKfOduPV8YpxcCgTJ3PCbyAV68KzlVDZuBuItxjl2zdoHiHlbOriAa1hTJopOSPkCFQECrOs6YkHa3zyx91EPy3abWzHsE0rvqALToJUrNhcsx3Fg3EjrDZklv5YPmWwZBWidY3lp4HjWCWYO-oBpBzAnn6AF_J485zBWc8jrlIJkyshQVbqxwm-Re7nq1FSvafZLWZhM1Ona98iQr3U0xzjbWDeZBUAmNz_Fxtlw"/>
+</div>
+</div>
+<div class="fan-mockup fan-right w-[220px] md:w-[320px] floating-mockup floating-mockup-delay-2">
+<div class="bg-on-background rounded-[40px] p-3 shadow-2xl border-4 border-outline">
+<img class="rounded-[32px] w-full aspect-[9/19.5] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDwHwSRnRx4W9lOVUANb37EH6Q3szgcW9dcFQPRG_SyuP0zP_Hh9Ydhc6iNIZlDo02fOdxfSm2SSrEGtOVNSz6c1tEp5oxPr2VcucNfJUdr73PiykFnyhwOpQ11uXVOnT6k3XzGgPdovNYmAY5m1eDdoDSBSJH-IgYzcBQ36p3k-AAdtMwJpzHwg6rSFg8sfypT9ieGkc0glHmFstrWSKuNqhmjyUU_CQAmL6QKTPDRn1LoADIO3Hog2SAutZ0Gf3_22I_WNoIuO3-"/>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. PARA PROFESIONALES -->
+<section class="py-section-padding-v bg-[#111111] text-white" id="pros">
+<div class="max-w-container-max mx-auto px-section-padding-h grid grid-cols-1 lg:grid-cols-2 items-center gap-20">
+<div class="reveal">
+<h2 class="font-headline-lg text-headline-lg italic mb-8">Tu psicólogo/a, potenciado con datos.</h2>
+<ul class="space-y-6">
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container mt-1">check_circle</span>
+<div>
+<h4 class="font-headline-md text-headline-md text-body-lg">Visibilidad entre sesiones</h4>
+<p class="font-body-md text-body-md text-white/60">Entendé qué pasó en el mes de tu paciente sin depender solo de su memoria.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container mt-1">check_circle</span>
+<div>
+<h4 class="font-headline-md text-headline-md text-body-lg">Gráficos de evolución</h4>
+<p class="font-body-md text-body-md text-white/60">Identificá disparadores (triggers) y mejoras con métricas cuantitativas.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-container mt-1">check_circle</span>
+<div>
+<h4 class="font-headline-md text-headline-md text-body-lg">Portal seguro</h4>
+<p class="font-body-md text-body-md text-white/60">Panel dedicado bajo estrictas normas de secreto profesional y GDPR.</p>
+</div>
+</li>
+</ul>
+<a href="/register" class="mt-12 bg-primary-container text-white px-8 py-4 rounded-full font-label-lg text-label-lg hover:scale-105 active:scale-95 transition-all btn-shimmer inline-block">
+                Solicitar demo profesional</a>
+            </a>
+</div>
+<div class="relative reveal stagger-2">
+<div class="bg-white/5 rounded-2xl p-4 backdrop-blur-sm border border-white/10 shadow-2xl overflow-hidden group">
+<img class="rounded-lg w-full h-auto opacity-90 group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiBIh7Qf_iNlHuBho1nDMZmCsVibUtvNmy6qioYG9CHNyr0qnD3Yx-oDphU_PssnqzXuWKSGspdO9_EsW_8PM_t0I9CHNEf-zHfkOsGk7BL76jvV8gpp4YAR9_fpfSbPylASaaGaMgRR47sb_vxD75WWX8ZPUjfO7sj7ShEZ0nhwM9qSVtEybz5o0M_HjeD7lWX2QV5ZjAdRx62BbK733Q0VGTsVFBBapGlhWiJuaxGzoEMbvhGP1NDWUzHXj10ajbnnBNQzIHLYy2"/>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. PRIVACIDAD -->
+<section class="py-section-padding-v bg-white">
+<div class="max-w-container-max mx-auto px-section-padding-h text-center">
+<div class="relative inline-block mb-8 reveal">
+<div class="w-20 h-20 flex items-center justify-center bg-primary-fixed rounded-full relative z-10">
+<span class="material-symbols-outlined text-4xl text-primary font-variation-settings-'FILL' 1" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<div class="absolute inset-0 pulse-icon scale-150"></div>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-background mb-16 reveal stagger-1">Tus datos, encriptados y privados.</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="p-8 rounded-2xl bg-surface-container-low reveal stagger-2 hover:shadow-xl transition-all">
+<h3 class="font-label-lg text-label-lg text-primary tracking-widest uppercase mb-4">Encriptación E2E</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ni nosotros podemos leer tus entradas. Solo vos tenés la llave.</p>
+</div>
+<div class="p-8 rounded-2xl bg-surface-container-low reveal stagger-3 hover:shadow-xl transition-all">
+<h3 class="font-label-lg text-label-lg text-primary tracking-widest uppercase mb-4">GDPR Ready</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Cumplimos con los estándares de privacidad más altos del mundo.</p>
+</div>
+<div class="p-8 rounded-2xl bg-surface-container-low reveal stagger-4 hover:shadow-xl transition-all">
+<h3 class="font-label-lg text-label-lg text-primary tracking-widest uppercase mb-4">Datos locales</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Tu diario vive principalmente en tu dispositivo, no en la nube.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 7. CTA FINAL -->
+<section class="py-section-padding-v relative overflow-hidden">
+<div class="absolute inset-0 gradient-bg"></div>
+<div class="relative z-10 max-w-container-max mx-auto px-section-padding-h text-center py-20">
+<h2 class="font-headline-xl text-headline-xl md:text-display-lg text-white mb-12 reveal">Empezá hoy, es gratis.</h2>
+<div class="flex flex-col md:flex-row gap-6 justify-center items-center reveal stagger-1">
+<button class="bg-white text-primary px-12 py-5 rounded-full font-label-lg text-label-lg hover:scale-105 active:scale-95 transition-all shadow-2xl flex items-center gap-3 btn-shimmer">
+<span class="material-symbols-outlined">apps</span>
+                App Store
+            </a>
+<button class="bg-white text-primary px-12 py-5 rounded-full font-label-lg text-label-lg hover:scale-105 active:scale-95 transition-all shadow-2xl flex items-center gap-3 btn-shimmer">
+<span class="material-symbols-outlined">play_books</span>
+                Google Play
+            </a>
+</div>
+</div>
+</section>
+<!-- FOOTER -->
+<footer class="bg-surface border-t border-outline-variant/30 py-20">
+<div class="max-w-container-max mx-auto px-section-padding-h flex flex-col md:flex-row justify-between items-start gap-12">
+<div class="max-w-xs">
+<img alt="Nunis Logo" class="h-10 mb-6" src="nunis-logo.jpg"/>
+<p class="font-body-md text-body-md text-on-surface-variant">Acompañándote en el viaje hacia una mente más clara y consciente.</p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-12">
+<div>
+<h4 class="font-label-lg text-label-lg text-on-background mb-6">Explorar</h4>
+<ul class="space-y-4 font-body-sm text-body-sm text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#features">Features</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Precios</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">FAQ</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-lg text-label-lg text-on-background mb-6">Compañía</h4>
+<ul class="space-y-4 font-body-sm text-body-sm text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">Blog</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Sobre nosotros</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Contacto</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-lg text-label-lg text-on-background mb-6">Legal</h4>
+<ul class="space-y-4 font-body-sm text-body-sm text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">Privacidad</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Términos</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Cookies</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="max-w-container-max mx-auto px-section-padding-h mt-20 pt-8 border-t border-outline-variant/20 text-center md:text-left">
+<p class="font-body-sm text-body-sm text-on-surface-variant">© 2026 Nunis Mood Tracking. All rights reserved.</p>
+</div>
+</footer>
+<script>
+    // Split text simulation for Hero
+    document.querySelectorAll('.split-text').forEach(el => {
+        const spans = el.querySelectorAll('span');
+        spans.forEach((span, i) => {
+            span.style.transitionDelay = `${i * 0.1}s`;
+        });
+    });
+
+    // Scroll Reveal Animation with Premium Easing
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('active');
+                
+                // Trigger counters
+                const counters = entry.target.querySelectorAll('[data-counter]');
+                counters.forEach(counter => animateCounter(counter));
+                
+                // Trigger rating
+                const rating = entry.target.querySelector('[data-target]');
+                if(rating) animateRating(rating);
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Stats Counter Animation
+    function animateCounter(el) {
+        if (el.dataset.animated) return;
+        el.dataset.animated = "true";
+        const target = parseInt(el.dataset.counter);
+        const duration = 2000;
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Cubic easing out for counter
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(easeProgress * target);
+            el.innerText = current.toLocaleString() + '+';
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+    function animateRating(el) {
+        if (el.dataset.animated) return;
+        el.dataset.animated = "true";
+        const target = parseFloat(el.dataset.target);
+        const duration = 2000;
+        const startTime = performance.now();
+
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            const current = (easeProgress * target).toFixed(1);
+            el.innerText = current + '★';
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+    // Parallax and Nav Transitions
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        
+        // Hero Parallax
+        const heroBg = document.querySelector('#hero-parallax img');
+        if(heroBg) {
+            heroBg.style.transform = `translateY(${scrollY * 0.4}px)`;
+        }
+
+        // Nav Glass Transition
+        const nav = document.getElementById('floating-nav');
+        if (scrollY > 50) {
+            nav.classList.add('scrolled');
+        } else {
+            nav.classList.remove('scrolled');
+        }
+
+        // Showcase Parallax (Fan Effect)
+        const showcase = document.getElementById('showcase');
+        const rect = showcase.getBoundingClientRect();
+        const viewHeight = window.innerHeight;
+        
+        if (rect.top < viewHeight && rect.bottom > 0) {
+            const scrollProgress = (viewHeight - rect.top) / (viewHeight + rect.height);
+            const fanLeft = showcase.querySelector('.fan-left');
+            const fanRight = showcase.querySelector('.fan-right');
+            const fanCenter = showcase.querySelector('.fan-center');
+
+            if (fanLeft && fanRight && fanCenter) {
+                const offset = scrollProgress * 60;
+                fanLeft.style.transform = `rotate(-${15 - (scrollProgress * 5)}deg) translateX(-${120 - offset}px)`;
+                fanRight.style.transform = `rotate(${15 - (scrollProgress * 5)}deg) translateX(${120 - offset}px)`;
+                fanCenter.style.transform = `translateY(-${offset/2}px)`;
+            }
+        }
+    });
+
+    // Smooth scroll for all internal links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if(target) {
+                target.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+</script>
+</body></html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html class="scroll-smooth" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nunis - Sentí tu día. Entendé tu camino.</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Outfit:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#c7c3e2",
+                    "surface-variant": "#e6e1e1",
+                    "error": "#ba1a1a",
+                    "background": "#fdf8f8",
+                    "inverse-on-surface": "#f4f0ef",
+                    "outline": "#787586",
+                    "primary-fixed": "#e4dfff",
+                    "surface-container": "#f1edec",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f7f2f2",
+                    "tertiary-fixed": "#e4dfff",
+                    "surface": "#fdf8f8",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-container": "#352c8a",
+                    "surface-container-high": "#ece7e7",
+                    "primary": "#5341cd",
+                    "secondary-fixed": "#e3dfff",
+                    "on-secondary-fixed": "#140067",
+                    "inverse-surface": "#313030",
+                    "tertiary-container": "#716e8a",
+                    "on-tertiary-fixed-variant": "#46445d",
+                    "secondary": "#5952af",
+                    "on-primary-fixed": "#160066",
+                    "surface-bright": "#fdf8f8",
+                    "on-primary-fixed-variant": "#4029ba",
+                    "tertiary": "#585670",
+                    "on-tertiary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-surface": "#1c1b1b",
+                    "surface-tint": "#5847d2",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#c8c4d7",
+                    "on-surface-variant": "#474554",
+                    "on-secondary-fixed-variant": "#413996",
+                    "on-primary-container": "#faf6ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e6e1e1",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#6c5ce7",
+                    "on-background": "#1c1b1b",
+                    "surface-dim": "#ddd9d8",
+                    "primary-fixed-dim": "#c6bfff",
+                    "secondary-fixed-dim": "#c5c0ff",
+                    "on-tertiary-fixed": "#1b1930",
+                    "on-tertiary-container": "#f9f5ff",
+                    "inverse-primary": "#c6bfff",
+                    "secondary-container": "#a19afd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-padding-v": "120px",
+                    "container-max": "1280px",
+                    "stack-sm": "8px",
+                    "stack-lg": "32px",
+                    "gutter": "32px",
+                    "stack-xl": "64px",
+                    "stack-md": "16px",
+                    "section-padding-h": "24px"
+            },
+            "fontFamily": {
+                    "display-lg-mobile": ["Playfair Display"],
+                    "label-md": ["Outfit"],
+                    "body-lg": ["Outfit"],
+                    "body-sm": ["Outfit"],
+                    "display-lg": ["Playfair Display"],
+                    "label-lg": ["Outfit"],
+                    "headline-xl": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"],
+                    "headline-lg": ["Playfair Display"],
+                    "body-md": ["Outfit"]
+            },
+            "fontSize": {
+                    "display-lg-mobile": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "1", "fontWeight": "500"}],
+                    "body-lg": ["20px", {"lineHeight": "1.6", "fontWeight": "300"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "display-lg": ["72px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-lg": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-xl": ["56px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-md": ["32px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "headline-lg": ["40px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-nav {
+            backdrop-filter: blur(16px);
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease-out;
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.1); opacity: 0.1; }
+        }
+        .pulse-layer {
+            animation: pulse-soft 3s infinite ease-in-out;
+        }
+        .iphone-shadow {
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15));
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Sticky Nav -->
+<nav class="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] z-50 transition-all duration-300">
+<div class="glass-nav rounded-full px-6 py-3 flex justify-between items-center border border-outline-variant/30 shadow-[0_8px_32px_rgba(108,92,231,0.08)]">
+<img alt="Nunis Logo" class="h-8 w-auto" src="nunis-logo.jpg"/>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/5 text-primary">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative h-screen min-h-[660px] w-full flex items-center justify-center text-center px-6 overflow-hidden">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-black/30 z-10"></div>
+<div class="w-full h-full bg-cover bg-center" data-alt="A serene and sun-drenched living room with large glass windows overlooking a lush garden. A happy young woman is sitting comfortably, smiling as she looks at her smartphone. The lighting is warm and golden, creating a cinematic, high-end lifestyle aesthetic that feels aspirational and calm. Soft bokeh effects emphasize the peaceful mood of the home environment." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC27-RNf62s20_dM31ZXrXKC_TzLwPccEXToxKQJaa2dBgdLZ5KwFHEtzpXxJ0QI4x_CEJm2INsqDFjVwJqygzWpHGCI6vTy80D9Wehb3uKyszgmwOnC-DJhyOhhjf73ZNsBXFv2FrSwosc8J4QONsz1wuDFj2rYuLUY68wbcV7LhjhvEPg8RNfdQdTGedfPMGsSC51ktcec-s6raYU5xfL-aQ7TW70I3v-oeuVcV1MH4zEFozhVQk1qXQRzhQXxun0hcRJdROpPSQf')"></div>
+</div>
+<div class="relative z-20 max-w-sm">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-white italic mb-8 leading-tight">
+                Sentí tu día. <br/> Entendé tu camino.
+            </h1>
+<a href="/register" class="bg-white text-primary px-10 py-4 rounded-full font-label-lg text-label-lg shadow-xl hover:scale-105 transition-transform active:scale-95 inline-block">
+                Comenzar gratis</a>
+            </button>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+<span class="text-white/60 text-[10px] font-label-md uppercase tracking-widest">Scroll</span>
+<div class="w-[1px] h-12 bg-gradient-to-b from-white to-transparent"></div>
+</div>
+</section>
+<!-- Stats Bar -->
+<section class="bg-white py-10 px-6 border-b border-outline-variant/10">
+<div class="flex flex-col items-center gap-10">
+<div class="text-center reveal">
+<p class="font-headline-md text-headline-md text-primary mb-1">10K+</p>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Usuarios activos</p>
+</div>
+<div class="text-center reveal">
+<div class="flex items-center justify-center gap-1 mb-1 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-headline-md text-headline-md">4.9</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Calificación</p>
+</div>
+<div class="text-center reveal">
+<p class="font-headline-md text-headline-md text-primary mb-1">50+</p>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Profesionales</p>
+</div>
+</div>
+</section>
+<!-- Features Grid -->
+<section class="py-section-padding-v px-6 max-w-lg mx-auto">
+<div class="text-center mb-stack-xl reveal">
+<p class="text-primary font-label-lg text-label-lg uppercase tracking-[0.2em] mb-4">Tu Bienestar</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile">Diseñado para tu mente.</h2>
+</div>
+<div class="space-y-6">
+<!-- Feature 1 -->
+<div class="bg-white p-8 rounded-[32px] border border-outline-variant/20 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-3xl">mood</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Seguimiento de Ánimo</h3>
+<p class="text-on-surface-variant font-body-md">Registra tus emociones diariamente con una interfaz intuitiva y hermosa.</p>
+</div>
+<!-- Feature 2 -->
+<div class="bg-primary/5 p-8 rounded-[32px] border border-primary/10 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white mb-6">
+<span class="material-symbols-outlined text-3xl">insights</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Análisis Profundo</h3>
+<p class="text-on-surface-variant font-body-md">Descubre patrones ocultos en tu comportamiento a través de reportes semanales.</p>
+</div>
+<!-- Feature 3 -->
+<div class="bg-white p-8 rounded-[32px] border border-outline-variant/20 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-tertiary-fixed flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-3xl">psychology</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Guías Personalizadas</h3>
+<p class="text-on-surface-variant font-body-md">Contenido curado por expertos basado específicamente en tu estado actual.</p>
+</div>
+<!-- Feature 4 -->
+<div class="bg-white p-8 rounded-[32px] border border-outline-variant/20 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-3xl">alarm_on</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Recordatorios Suaves</h3>
+<p class="text-on-surface-variant font-body-md">Notificaciones que respetan tu paz mental, diseñadas para no interrumpir.</p>
+</div>
+<!-- Feature 5 -->
+<div class="bg-white p-8 rounded-[32px] border border-outline-variant/20 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-secondary-fixed-dim flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-3xl">groups</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Comunidad Segura</h3>
+<p class="text-on-surface-variant font-body-md">Conecta con otros en espacios moderados y llenos de empatía.</p>
+</div>
+<!-- Feature 6 -->
+<div class="bg-white p-8 rounded-[32px] border border-outline-variant/20 shadow-sm reveal">
+<div class="w-14 h-14 rounded-2xl bg-tertiary/10 flex items-center justify-center text-primary mb-6">
+<span class="material-symbols-outlined text-3xl">verified_user</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Privacidad Total</h3>
+<p class="text-on-surface-variant font-body-md">Tus datos nunca salen de tu control. Encriptación de grado médico.</p>
+</div>
+</div>
+</section>
+<!-- App Showcase -->
+<section class="py-section-padding-v bg-surface-container-low overflow-hidden">
+<div class="px-6 text-center mb-16 reveal">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile mb-4">Experiencia Premium.</h2>
+<p class="text-on-surface-variant font-body-md max-w-xs mx-auto">Una herramienta poderosa que cabe perfectamente en tu mano.</p>
+</div>
+<div class="relative flex justify-center h-[500px]">
+<!-- Abanico style mockups -->
+<div class="absolute -left-12 rotate-[-12deg] iphone-shadow reveal" style="transition-delay: 100ms;">
+<div class="w-[200px] h-[400px] bg-slate-900 rounded-[40px] border-[6px] border-slate-800 bg-cover overflow-hidden" data-alt="A premium high-fidelity mobile app UI mockup showing a mood tracking dashboard. The interface uses soft lavender and white tones with elegant typography. The screen displays a weekly emotional trend chart with rounded UI elements and a minimalist, clean aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBVTEcB6_dMLVrsh_4LmJUYJ2Buz06gyofJZQiDVAKUmrxzgrFdphZolmS5VvUqlxRKAVLxfmGWatDMCMQ6L-Ps0F5k99mpwULV30SuEHcELIGF0WjyAqEo-Y-qWeJEB--NDhEXaehBGzWFUxJ8ZRHG9LsZOJ8tvV3f6eaVfk6KMrykPs1uO_XSdwWJTSSruYGf1HLwp1jgycEMJYJK_lqFiI4uwt1TOY8uo7BGa7GLkWeLdgfdRrrzclU6tT9Am6YuPf7WgBqalD7l')"></div>
+</div>
+<div class="absolute z-10 scale-110 top-4 iphone-shadow reveal" style="transition-delay: 300ms;">
+<div class="w-[220px] h-[440px] bg-slate-900 rounded-[44px] border-[8px] border-slate-800 bg-cover overflow-hidden" data-alt="The central mobile app screen of Nunis showing a 'Good Morning' personalized greeting. It features a large circular mood selection interface with soft gradients and subtle shadows. The design is airy, luxurious, and modern, representing the peak of elegant UI design." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD-OYmdrf1i3ldhRTlc0-_puB6fGHeZ4c1aMezKpfxpNHwbD6b0SkgNjoHojD63-oSpSt5r3q6HCvvsrh5fCik8N7TDPY4D1LXcM3aPDALUhhvxlR0qA63NAV4SpHC9yxstWUazaMWZkZYSvuiyV-JQ2VPAG073aw4n8zxuPy2TA-2nkhX12ULb6H5WMXuoaL2G-7UsqleORc2JAzcliTJzLdjaGcWBjEJLi2nAutOmvg6INq0bHHatby0EtRADo1iARMEbcANqHQyK')"></div>
+</div>
+<div class="absolute -right-12 rotate-[12deg] iphone-shadow reveal" style="transition-delay: 500ms;">
+<div class="w-[200px] h-[400px] bg-slate-900 rounded-[40px] border-[6px] border-slate-800 bg-cover overflow-hidden" data-alt="A mobile app screen showing a detailed professional advice article. The layout is editorial with a beautiful serif header and clean Outfit body text. It includes high-quality photography of a calming nature scene, reinforcing the app's wellness focus." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvfmrHdm-CxjGhNjy2mLX--yPZVa5MQGdLPQs-ubhBYc-Yb7TqcKdp8hLSycapPluEK0YxTdcyU7zGlBSJPEdDRENOpigjTR8a4kPyiWIJd8gPvmy4zMGR4gP8G9Ebq28yfrlYBga1aSFmBlMT4bWGvltSt_Rx1_fTjz5hHvN6Hx3DmQeP9ESJgJpr_gIVPQwf2F3F6ziSHGL3dcOclLyXQzecjxGLusKwlstN80UJq1tPs0Xi2VjmKZ4b5o-dIDVse5fCuAdLcrvO')"></div>
+</div>
+</div>
+</section>
+<!-- Professional Section -->
+<section class="bg-[#111111] py-section-padding-v px-8 text-white">
+<div class="max-w-md mx-auto">
+<p class="text-primary-fixed-dim font-label-lg text-label-lg uppercase tracking-[0.2em] mb-6 reveal">Para Profesionales</p>
+<h2 class="font-headline-xl text-[42px] leading-tight mb-10 reveal">Potenciá tus sesiones con datos reales.</h2>
+<ul class="space-y-6 mb-12 reveal">
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim mt-1">check_circle</span>
+<p class="font-body-lg text-body-lg">Visualización de tendencias emocionales de tus pacientes.</p>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim mt-1">check_circle</span>
+<p class="font-body-lg text-body-lg">Exportación de reportes clínicos en un click.</p>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary-fixed-dim mt-1">check_circle</span>
+<p class="font-body-lg text-body-lg">Comunicación segura y encriptada.</p>
+</li>
+</ul>
+<button class="w-full bg-primary py-5 rounded-full font-label-lg text-label-lg text-white hover:bg-primary-container transition-colors reveal">
+                Solicitar demo profesional
+            </button>
+</div>
+</section>
+<!-- Privacy Section -->
+<section class="py-section-padding-v px-6 text-center">
+<div class="relative w-32 h-32 mx-auto mb-10 flex items-center justify-center reveal">
+<div class="absolute inset-0 bg-primary/20 rounded-full pulse-layer"></div>
+<div class="absolute inset-4 bg-primary/10 rounded-full"></div>
+<span class="material-symbols-outlined text-primary text-5xl relative z-10" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile mb-6 reveal">Tus datos, encriptados y privados.</h2>
+<p class="text-on-surface-variant font-body-md mb-12 max-w-sm mx-auto reveal">Nunca vendemos tu información. Todo lo que registras es estrictamente confidencial y tuyo.</p>
+<div class="flex flex-wrap justify-center gap-4 reveal">
+<div class="bg-surface-container px-6 py-3 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">check</span>
+<span class="font-label-md text-label-md">GDPR Compliant</span>
+</div>
+<div class="bg-surface-container px-6 py-3 rounded-full flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">check</span>
+<span class="font-label-md text-label-md">End-to-End Encryption</span>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="px-6 pb-20">
+<div class="bg-primary-container rounded-[48px] p-12 text-center text-white relative overflow-hidden shadow-2xl reveal">
+<!-- Decorative circle -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+<h2 class="font-headline-xl text-[44px] leading-tight mb-8 relative z-10">Empezá hoy, es gratis.</h2>
+<button class="bg-white text-primary px-12 py-5 rounded-full font-label-lg text-label-lg shadow-lg hover:scale-105 transition-transform active:scale-95 relative z-10">
+                Descargar la App
+            </button>
+<p class="mt-6 text-white/70 font-label-md text-label-md relative z-10">Disponible para iOS y Android</p>
+</div>
+</section>
+<!-- Footer -->
+<footer class="bg-surface py-16 px-section-padding-h border-t border-outline-variant/20">
+<div class="max-w-md mx-auto text-center">
+<img alt="Nunis Logo" class="h-10 w-auto mx-auto mb-10 grayscale opacity-60" src="nunis-logo.jpg"/>
+<nav class="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-12">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Características</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Profesionales</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Privacidad</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Soporte</a>
+</nav>
+<div class="flex justify-center gap-6 mb-10">
+<a class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant" href="#">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path></svg>
+</a>
+<a class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant" href="#">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path></svg>
+</a>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant/60">
+                © 2026 Nunis Mood Tracking. <br/>
+                Hecho con amor para tu paz mental.
+            </p>
+</div>
+</footer>
+<script>
+        // Reveal animation on scroll
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Navigation scroll behavior
+        let lastScrollTop = 0;
+        const nav = document.querySelector('nav');
+        
+        window.addEventListener('scroll', () => {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                // Scrolling down
+                nav.style.transform = 'translateX(-50%) translateY(-100px)';
+            } else {
+                // Scrolling up
+                nav.style.transform = 'translateX(-50%) translateY(0)';
+            }
+            lastScrollTop = scrollTop;
+        });
+
+        // Simple button active states for feedback
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => btn.classList.add('scale-95'));
+            btn.addEventListener('mouseup', () => btn.classList.remove('scale-95'));
+            btn.addEventListener('mouseleave', () => btn.classList.remove('scale-95'));
+        });
+    </script>
+</body></html>

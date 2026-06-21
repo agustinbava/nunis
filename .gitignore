@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.expo/
+*.tsbuildinfo
+.DS_Store
+
+stitch_output/
+*.zip
+landing/screenshot.png
+public/landing/mobile-screenshot.png
