@@ -347,6 +347,19 @@ export async function createSlot(id: string, psychId: string, slotDate: string, 
   if (error) throw new Error(error.message);
 }
 
+// Crear varios slots de una (para generar el día desde horario+duración)
+export async function createSlotsBulk(
+  psychId: string, items: { slot_date: string; slot_time: string }[]
+) {
+  if (!items.length) return;
+  const rows = items.map((it) => ({
+    id: 'appt_' + Math.random().toString(36).slice(2, 16),
+    psychologist_id: psychId, slot_date: it.slot_date, slot_time: it.slot_time, status: 'available',
+  }));
+  const { error } = await supabase.from('appointments').insert(rows);
+  if (error) throw new Error(error.message);
+}
+
 // Slots del psicólogo (disponibles + reservados, con nombre del paciente)
 export async function getPsychSlots(psychId: string) {
   const { data, error } = await supabase.from('appointments')
