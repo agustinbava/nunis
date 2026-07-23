@@ -7,7 +7,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, PlayfairDisplay_700Bold, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
 import * as SplashScreen from 'expo-splash-screen';
-import { seedMockData } from '../lib/seed';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,10 +18,6 @@ export default function RootLayout() {
     Outfit_500Medium,
     Outfit_600SemiBold,
   });
-
-  useEffect(() => {
-    seedMockData().catch(console.warn);
-  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {

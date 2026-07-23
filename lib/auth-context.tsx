@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { createUser, getUserByEmail, getUserById } from './database';
-import { hashPassword, deriveKey, generateKeyPair, encryptText, decryptText } from './crypto';
+import { supabase } from './supabase';
+import { createUser, getUserById } from './database';
+import { deriveKey, generateKeyPair, encryptText } from './crypto';
 import naclUtil from 'tweetnacl-util';
 
 interface User {
@@ -42,18 +43,50 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<Uint8Array | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Restaura la sesión persistida al abrir la app.
+  // Nota E2E: al restaurar no tenemos el password, así que encryptionKey queda
+  // null hasta que el usuario vuelva a loguearse. Los campos encriptados
+  // (notas/journal) se muestran bloqueados hasta entonces.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (uid) {
+        const profile = await getUserById(uid).catch(() => null);
+        if (mounted && profile) setUser(profile as User);
+      }
+      if (mounted) setLoading(false);
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setUser(null);
+        setEncryptionKey(null);
+      }
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const hash = await hashPassword(password);
-      const found = await getUserByEmail(email.toLowerCase().trim());
-      if (!found || found.password_hash !== hash) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+      if (error || !data.user) {
         return { success: false, error: 'Email o contraseña incorrectos' };
       }
-      const key = await deriveKey(password, found.id);
+      const key = await deriveKey(password, data.user.id);
+      const profile = await getUserById(data.user.id);
+      if (!profile) return { success: false, error: 'No se encontró el perfil' };
       setEncryptionKey(key);
-      setUser(found as User);
+      setUser(profile as User);
       return { success: true };
     } catch (e: any) {
       return { success: false, error: e.message };
@@ -62,13 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (email: string, password: string, name: string, role: 'patient' | 'psychologist') => {
     try {
-      const existing = await getUserByEmail(email.toLowerCase().trim());
-      if (existing) {
-        return { success: false, error: 'Ya existe una cuenta con este email' };
+      const cleanEmail = email.toLowerCase().trim();
+      const { data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { data: { name, role } },
+      });
+      if (error) {
+        const msg = /already registered/i.test(error.message)
+          ? 'Ya existe una cuenta con este email'
+          : error.message;
+        return { success: false, error: msg };
+      }
+      if (!data.user) return { success: false, error: 'No se pudo crear la cuenta' };
+      if (!data.session) {
+        // Email confirmation está activada en Supabase. Para el prototipo hay que
+        // desactivarla (Auth -> Providers -> Email -> Confirm email = off).
+        return { success: false, error: 'Revisá tu email para confirmar la cuenta, o desactivá la confirmación de email en Supabase.' };
       }
 
-      const id = generateId();
-      const hash = await hashPassword(password);
+      const id = data.user.id;
       const key = await deriveKey(password, id);
       const keyPair = generateKeyPair();
       const publicKeyB64 = naclUtil.encodeBase64(keyPair.publicKey);
@@ -76,7 +122,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const encryptedPrivateKey = encryptText(privateKeyB64, key);
       const shareCode = generateShareCode();
 
-      await createUser(id, email.toLowerCase().trim(), hash, name, role, shareCode, publicKeyB64, encryptedPrivateKey);
+      // Completa el profile (creado por el trigger) con name/role/claves/share_code.
+      await createUser(id, cleanEmail, '', name, role, shareCode, publicKeyB64, encryptedPrivateKey);
 
       const newUser = await getUserById(id);
       setEncryptionKey(key);
@@ -87,7 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setEncryptionKey(null);
   }, []);
@@ -107,15 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
-}
-
-function generateId(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 20; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
 }
 
 function generateShareCode(): string {

@@ -45,6 +45,7 @@ class WebDatabase {
       entry_activities: new Table(),
       journal_entries: new Table(),
       psych_patients: new Table(),
+      tasks: new Table(),
     };
     this.load();
   }
@@ -159,7 +160,7 @@ export async function w_deleteActivity(id: string) {
 
 export async function w_createMoodEntry(
   id: string, userId: string, date: string, score: number,
-  notesEncrypted: string | null, activityIds: string[]
+  notesEncrypted: string | null, activityIds: string[], emotions: string[] = []
 ) {
   const db = getWebDb();
   // Remove existing entry for this date
@@ -170,6 +171,7 @@ export async function w_createMoodEntry(
   }
   db.table('mood_entries').insert({
     id, user_id: userId, date, score, notes_encrypted: notesEncrypted,
+    emotions: JSON.stringify(emotions),
     created_at: new Date().toISOString(),
   });
   for (const actId of activityIds) {
@@ -270,6 +272,44 @@ export async function w_updateSharePermissions(
 export async function w_unlinkPatient(psychPatientId: string) {
   const db = getWebDb();
   db.table('psych_patients').update((r) => r.id === psychPatientId, { status: 'revoked' });
+  db.save();
+}
+
+// ── Correlations ──
+
+// ── Tasks ──
+
+export async function w_createTask(
+  id: string, psychId: string, patientId: string, description: string, dueDate: string | null
+) {
+  const db = getWebDb();
+  db.table('tasks').insert({
+    id,
+    psychologist_id: psychId,
+    patient_id: patientId,
+    description,
+    due_date: dueDate,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  });
+  db.save();
+}
+
+export async function w_getPatientTasks(patientId: string) {
+  const db = getWebDb();
+  return db.table('tasks').findAll((r) => r.patient_id === patientId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export async function w_getPsychTasks(psychId: string) {
+  const db = getWebDb();
+  return db.table('tasks').findAll((r) => r.psychologist_id === psychId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export async function w_completeTask(taskId: string) {
+  const db = getWebDb();
+  db.table('tasks').update((r) => r.id === taskId, { status: 'completed' });
   db.save();
 }
 

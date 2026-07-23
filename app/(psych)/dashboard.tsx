@@ -86,13 +86,36 @@ export default function PsychDashboardScreen() {
         ? entries[0].score - entries[entries.length - 1].score
         : 0;
 
-      const alerts: string[] = [];
+      const alerts: { text: string; severity: 'critical' | 'warning' }[] = [];
       const lowDays = entries.filter((e: any) => e.score <= 3).length;
-      if (lowDays >= 3) alerts.push(`${lowDays} dias con animo bajo esta semana`);
-      if (entries.length === 0) alerts.push('Sin registros recientes');
-      if (last && last.score <= 2) alerts.push('Ultimo registro muy bajo');
 
-      data[p.patient_id] = { entries, avg: Math.round(avg * 10) / 10, last, trend, alerts };
+      // Alert: 3+ days with score <= 3 in the last 7 days
+      if (lowDays >= 3) {
+        alerts.push({ text: `${lowDays} dias con animo bajo esta semana`, severity: 'critical' });
+      }
+
+      // Alert: no entries in 3+ days (compare last entry date with today)
+      if (last) {
+        const lastDate = new Date(last.date + 'T12:00:00');
+        const now = new Date();
+        const diffMs = now.getTime() - lastDate.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays >= 3) {
+          alerts.push({ text: `Sin registros hace ${diffDays} dias`, severity: 'warning' });
+        }
+      } else if (entries.length === 0) {
+        alerts.push({ text: 'Sin registros recientes', severity: 'warning' });
+      }
+
+      // Alert: sudden drop (today's score is 3+ points lower than average)
+      if (last && avg > 0) {
+        const drop = avg - last.score;
+        if (drop >= 3) {
+          alerts.push({ text: `Caida abrupta: score de ${last.score} vs promedio de ${avg.toFixed(1)}`, severity: 'critical' });
+        }
+      }
+
+      data[p.patient_id] = { entries, avg: Math.round(avg * 10) / 10, last, trend, alerts: alerts.map(a => a.text), alertDetails: alerts };
     }
     setPatientData(data);
   }, [user]);
@@ -133,7 +156,7 @@ export default function PsychDashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Image source={require('../../assets/nunis-logo.jpg')} style={{ width: 100, height: 36 }} resizeMode="contain" />
+            <Image source={require('../../assets/nunis-logo.png')} style={{ width: 100, height: 36 }} resizeMode="contain" />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Profesional</Text>
             </View>
@@ -267,6 +290,31 @@ export default function PsychDashboardScreen() {
                           opacity: 0.7,
                         }]}
                       />
+                    ))}
+                  </View>
+                )}
+
+                {/* Alerts */}
+                {data.alertDetails && data.alertDetails.length > 0 && (
+                  <View style={styles.alertsContainer}>
+                    {data.alertDetails.map((alert: { text: string; severity: 'critical' | 'warning' }, idx: number) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.alertItem,
+                          {
+                            borderLeftColor: alert.severity === 'critical' ? '#E74C3C' : '#FF9F43',
+                            backgroundColor: alert.severity === 'critical' ? '#E74C3C10' : '#FF9F4310',
+                          },
+                        ]}
+                      >
+                        <Text style={[
+                          styles.alertItemText,
+                          { color: alert.severity === 'critical' ? '#E74C3C' : '#FF9F43' },
+                        ]}>
+                          {alert.severity === 'critical' ? '!' : '!'} {alert.text}
+                        </Text>
+                      </View>
                     ))}
                   </View>
                 )}
@@ -572,6 +620,22 @@ const styles = StyleSheet.create({
   lastEntryValue: {
     fontSize: 13,
     fontFamily: 'Outfit_500Medium',
+  },
+
+  // Alerts
+  alertsContainer: {
+    marginTop: 12,
+    gap: 6,
+  },
+  alertItem: {
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  alertItemText: {
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
   },
 
   // Logout

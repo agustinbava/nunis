@@ -1,10 +1,3 @@
-// Type declarations for platform-specific database modules
-// Metro resolves database.web.ts or database.native.ts automatically
-// This file serves as TypeScript fallback for type checking
-export { createUser, getUserByEmail, getUserById, getUserByShareCode, updateUserTheme,
-  createActivity, getActivities, deleteActivity,
-  createMoodEntry, getMoodEntries, getMoodEntryWithActivities, getEntryActivities, getAllMoodEntries,
-  createJournalEntry, getJournalEntries,
-  linkPatientToPsych, getPsychPatients, getPatientPsych, updateSharePermissions, unlinkPatient,
-  getCorrelationData,
-} from './database.web';
+// Type fallback para TypeScript. Metro resuelve database.web.ts / database.native.ts,
+// que a su vez re-exportan database.supabase.ts (misma implementación en todas las plataformas).
+export * from './database.supabase';

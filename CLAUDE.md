@@ -34,7 +34,9 @@ lib/
 public/landing/    → Landing pages HTML (Stitch) servidas como static assets
 landing/           → Copia de trabajo de la landing (editar acá, copiar a public/)
 assets/
-  nunis-logo.jpg   → Logo oficial (serif italic, "i" = figura humana en purple)
+  nunis-logo.jpg       → Logo oficial (serif italic, "i" = figura humana en purple)
+  nunis-logo-white.png → Logo versión white para fondos oscuros
+  favicon.png          → Favicon (figura humana purple)
 ```
 
 ## Design System
@@ -63,6 +65,16 @@ assets/
 - Vista detallada de paciente: promedios, tendencia, barras 7 días, correlaciones
 - Login/register con roles (paciente/psicólogo)
 - Landing page con animaciones (parallax, scroll reveal, counter, floating mockups)
+- Feed/Home con contenido (historial, insights, psicólogos recomendados, tips)
+- Modal de registro flotante con animación de confirmación
+- Emotion selector con rueda de emociones (6 primarias → secundarias → terciarias, códigos cortos)
+- Notas por voz (UI con modo texto/voz, transcripción simulada)
+- Toggle compartir con psicólogo
+- Tareas asignables (psicólogo crea → paciente completa)
+- Alertas inteligentes (3+ días bajo, inactividad, caída abrupta)
+- Open Graph tags en landing
+- Favicon personalizado
+- Logo dark + white versions
 
 ## Features en roadmap (no implementadas aún)
 ### Para psicólogos

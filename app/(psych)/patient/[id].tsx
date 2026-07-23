@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useAuth } from '../../../lib/auth-context';
 import {
   getUserById, getAllMoodEntries, getEntryActivities,
   getCorrelationData, getJournalEntries, getPsychPatients,
+  createTask, getPatientTasks,
 } from '../../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../../constants/themes';
 
@@ -23,6 +24,8 @@ export default function PatientDetailScreen() {
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>(null);
   const [tab, setTab] = useState<'resumen' | 'historial' | 'correlaciones'>('resumen');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [newTaskDesc, setNewTaskDesc] = useState('');
 
   const loadData = useCallback(async () => {
     if (!id || !user) return;
@@ -41,6 +44,9 @@ export default function PatientDetailScreen() {
 
     const jEntries = await getJournalEntries(id, 10);
     setJournalEntries(jEntries);
+
+    const patientTasks = await getPatientTasks(id);
+    setTasks(patientTasks);
   }, [id, user]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -95,7 +101,7 @@ export default function PatientDetailScreen() {
             <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
               <Text style={[styles.backArrow, { color: colors.primary }]}>{'<'}</Text>
             </TouchableOpacity>
-            <Image source={require('../../../assets/nunis-logo.jpg')} style={{ width: 100, height: 36 }} resizeMode="contain" />
+            <Image source={require('../../../assets/nunis-logo.png')} style={{ width: 100, height: 36 }} resizeMode="contain" />
           </View>
         </View>
 
@@ -358,6 +364,63 @@ export default function PatientDetailScreen() {
             )}
           </View>
         )}
+
+        {/* Asignar Tarea Section */}
+        <View style={styles.card}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Asignar tarea</Text>
+          <View style={styles.taskInputRow}>
+            <TextInput
+              style={[styles.taskInput, { color: colors.text, borderColor: colors.textSecondary + '40' }]}
+              placeholder="Descripcion de la tarea..."
+              placeholderTextColor={colors.textSecondary}
+              value={newTaskDesc}
+              onChangeText={setNewTaskDesc}
+            />
+            <TouchableOpacity
+              style={[styles.taskAssignBtn, { backgroundColor: colors.primary, opacity: newTaskDesc.trim() ? 1 : 0.5 }]}
+              onPress={async () => {
+                if (!newTaskDesc.trim() || !user || !id) return;
+                const taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                await createTask(taskId, user.id, id, newTaskDesc.trim(), null);
+                setNewTaskDesc('');
+                const updatedTasks = await getPatientTasks(id);
+                setTasks(updatedTasks);
+              }}
+              disabled={!newTaskDesc.trim()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.taskAssignBtnText}>Asignar</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Task List */}
+          {tasks.length > 0 && (
+            <View style={styles.taskList}>
+              {tasks.map((task) => (
+                <View key={task.id} style={[styles.taskItem, { borderLeftColor: task.status === 'completed' ? '#27AE60' : colors.primary }]}>
+                  <View style={styles.taskItemContent}>
+                    <Text style={[
+                      styles.taskItemText,
+                      { color: colors.text },
+                      task.status === 'completed' && styles.taskItemCompleted,
+                    ]}>
+                      {task.description}
+                    </Text>
+                    <View style={[styles.taskStatusBadge, {
+                      backgroundColor: task.status === 'completed' ? '#27AE6018' : '#FF9F4318',
+                    }]}>
+                      <Text style={[styles.taskStatusText, {
+                        color: task.status === 'completed' ? '#27AE60' : '#FF9F43',
+                      }]}>
+                        {task.status === 'completed' ? 'Completada' : 'Pendiente'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -668,5 +731,65 @@ const styles = StyleSheet.create({
   corrBarFill: {
     height: '100%',
     borderRadius: 3,
+  },
+
+  // Tasks
+  taskInputRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  taskInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+  },
+  taskAssignBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  taskAssignBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  taskList: {
+    marginTop: 20,
+    gap: 8,
+  },
+  taskItem: {
+    borderLeftWidth: 3,
+    backgroundColor: '#F8F7FF',
+    borderRadius: 12,
+    padding: 14,
+  },
+  taskItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  taskItemText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_500Medium',
+    flex: 1,
+  },
+  taskItemCompleted: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
+  },
+  taskStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  taskStatusText: {
+    fontSize: 11,
+    fontFamily: 'Outfit_600SemiBold',
   },
 });

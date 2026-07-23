@@ -1,11 +1,36 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../lib/theme-context';
-import { View, Text, useWindowDimensions } from 'react-native';
+import { View, Text, useWindowDimensions, Platform } from 'react-native';
+import { useEffect } from 'react';
+
+function useTabBarHoverEffect() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const style = document.createElement('style');
+    style.textContent = `
+      [role="tab"] {
+        transition: all 0.25s ease !important;
+        border-radius: 9999px !important;
+      }
+      [role="tab"]:hover {
+        background-color: rgba(255,255,255,0.1) !important;
+      }
+      [role="tab"]:hover [role="tab"] span,
+      [role="tab"]:hover div {
+        color: #ffffff !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
+}
 
 export default function AppLayout() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const tabBarWidth = Math.min(400, width - 48);
+
+  useTabBarHoverEffect();
 
   return (
     <Tabs

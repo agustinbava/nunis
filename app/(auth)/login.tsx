@@ -7,9 +7,44 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth-context';
 
-const BG_IMAGE = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=1400&q=80';
+const BG_IMAGE = 'https://images.unsplash.com/photo-1545389336-cf090694435e?w=1200&q=90';
+
+function WebLogin() {
+  const { login } = useAuth();
+  const router = useRouter();
+
+  // Listen for messages from the iframe login form
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = async (e: MessageEvent) => {
+      if (e.data?.type === 'nunis-login') {
+        const result = await login(e.data.email, e.data.password);
+        if (result.success) router.replace('/');
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [login, router]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      {React.createElement('iframe', {
+        src: '/landing/login.html',
+        style: { width: '100%', height: '100%', border: 'none', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+      })}
+    </View>
+  );
+}
 
 export default function LoginScreen() {
+  if (Platform.OS === 'web') {
+    return <WebLogin />;
+  }
+
+  return <NativeLogin />;
+}
+
+function NativeLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -59,7 +94,7 @@ export default function LoginScreen() {
               {/* Logo */}
               <View style={styles.header}>
                 <Image
-                  source={require('../../assets/nunis-logo.jpg')}
+                  source={require('../../assets/nunis-logo.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
@@ -115,7 +150,7 @@ export default function LoginScreen() {
                 >
                   <Text style={styles.linkText}>
                     ¿No tenés cuenta?{' '}
-                    <Text style={styles.linkAccent}>Crear cuenta</Text>
+                    <Text style={styles.linkAccent}>Registrarse</Text>
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -152,7 +187,7 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 200,
     height: 80,
-    tintColor: '#ffffff',
+    
   },
   tagline: {
     fontSize: 16,

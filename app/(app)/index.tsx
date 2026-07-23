@@ -1,235 +1,294 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Platform, Image,
+  View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
 } from 'react-native';
 import AppContainer from '../../components/AppContainer';
+import MoodRegistrationModal from '../../components/MoodRegistrationModal';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
-import { getActivities, createMoodEntry, createActivity, getMoodEntries } from '../../lib/database';
-import { encryptText } from '../../lib/crypto';
-import { moodScoreToEmoji, moodScoreToColor, moodGradientColors } from '../../constants/themes';
-
-function generateId(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let r = '';
-  for (let i = 0; i < 20; i++) r += chars[Math.floor(Math.random() * chars.length)];
-  return r;
-}
+import { getMoodEntries, getAllMoodEntries, getCorrelationData, getPatientTasks, completeTask } from '../../lib/database';
+import { moodScoreToColor, moodScoreToEmoji } from '../../constants/themes';
+import { getEmotionLabel } from '../../constants/emotions';
 
 function todayStr() {
   const d = new Date();
   return d.toISOString().split('T')[0];
 }
 
+function getDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  const labels = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+  return labels[day];
+}
+
+function getLast7Days(): string[] {
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+const MOCK_PSYCHOLOGISTS = [
+  { name: 'Lic. Valentina Rossi', specialty: 'Terapia cognitivo-conductual', rating: 4.9 },
+  { name: 'Lic. Matias Fernandez', specialty: 'Mindfulness y bienestar', rating: 4.8 },
+  { name: 'Lic. Camila Lopez', specialty: 'Psicologia positiva', rating: 4.7 },
+];
+
+const WELLNESS_TIPS = [
+  'Meditar 10 minutos mejora tu concentracion',
+  'Caminar al aire libre reduce el estres',
+  'Escribir un diario mejora tu autoconocimiento',
+];
+
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { user, encryptionKey } = useAuth();
-  const [score, setScore] = useState(5);
-  const [notes, setNotes] = useState('');
-  const [activities, setActivities] = useState<any[]>([]);
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
-  const [newActivityName, setNewActivityName] = useState('');
-  const [showAddActivity, setShowAddActivity] = useState(false);
+  const { user } = useAuth();
+  const [modalVisible, setModalVisible] = useState(false);
   const [todayEntry, setTodayEntry] = useState<any>(null);
+  const [todayEmotions, setTodayEmotions] = useState<string[]>([]);
+  const [recentEntries, setRecentEntries] = useState<any[]>([]);
+  const [correlations, setCorrelations] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const acts = await getActivities(user.id);
-    setActivities(acts);
-    const entries = await getMoodEntries(user.id, 1);
-    if (entries.length > 0 && entries[0].date === todayStr()) {
-      setTodayEntry(entries[0]);
-      setScore(entries[0].score);
+
+    // Get today's entry
+    const entries = await getMoodEntries(user.id, 7);
+    const today = entries.find((e: any) => e.date === todayStr());
+    setTodayEntry(today || null);
+
+    if (today && today.emotions) {
+      try {
+        const parsed = typeof today.emotions === 'string' ? JSON.parse(today.emotions) : today.emotions;
+        setTodayEmotions(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setTodayEmotions([]);
+      }
+    } else {
+      setTodayEmotions([]);
+    }
+
+    // Get all entries for the mini history
+    const allEntries = await getAllMoodEntries(user.id);
+    setRecentEntries(allEntries);
+
+    // Get correlation data
+    const corr = await getCorrelationData(user.id);
+    setCorrelations(corr);
+
+    // Get patient tasks
+    const patTasks = await getPatientTasks(user.id);
+    setTasks(patTasks);
+
+    setLoaded(true);
+
+    // If no entry today, auto-open modal
+    if (!today) {
+      setModalVisible(true);
     }
   }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const toggleActivity = (id: string) => {
-    setSelectedActivities((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    );
+  const handleModalSaved = () => {
+    loadData();
   };
 
-  const handleAddActivity = async () => {
-    if (!newActivityName.trim() || !user) return;
-    const emojis = ['🏃', '💪', '📚', '🎵', '🍳', '🧘', '💻', '🎮', '☕', '🌙', '🎨', '🤝', '📱', '🎯'];
-    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-    const id = generateId();
-    await createActivity(id, user.id, newActivityName.trim(), emoji, colors.primary);
-    setNewActivityName('');
-    setShowAddActivity(false);
-    await loadData();
+  const handleModalClose = () => {
+    setModalVisible(false);
   };
 
-  const handleSave = async () => {
-    if (!user || !encryptionKey) return;
-    const id = generateId();
-    let encryptedNotes: string | null = null;
-    if (notes.trim()) {
-      encryptedNotes = encryptText(notes, encryptionKey);
-    }
-    await createMoodEntry(id, user.id, todayStr(), score, encryptedNotes, selectedActivities);
-    setSaved(true);
-    setTodayEntry({ score });
-    setTimeout(() => setSaved(false), 2500);
-  };
+  // Build mini history data for last 7 days
+  const last7 = getLast7Days();
+  const entryMap: Record<string, any> = {};
+  for (const e of recentEntries) {
+    entryMap[e.date] = e;
+  }
+
+  // Find the top correlation insight
+  const topCorrelation = correlations.length > 0 ? correlations[0] : null;
+  const insightDiff = topCorrelation
+    ? (topCorrelation.avg_mood_with - topCorrelation.avg_mood_overall).toFixed(1)
+    : null;
 
   return (
     <AppContainer>
-        {/* Header */}
-        <Image
-          source={require('../../assets/nunis-logo.jpg')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
-        <Text style={[styles.greeting, { color: colors.text }]}>
-          Hola, {user?.name?.split(' ')[0]}
-        </Text>
-        <Text style={[styles.date, { color: colors.textSecondary }]}>
-          {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </Text>
+      {/* Header */}
+      <Image
+        source={require('../../assets/nunis-logo.png')}
+        style={styles.headerLogo}
+        resizeMode="contain"
+      />
+      <Text style={[styles.greeting, { color: colors.text }]}>
+        Hola, {user?.name?.split(' ')[0]}
+      </Text>
+      <Text style={[styles.date, { color: colors.textSecondary }]}>
+        {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+      </Text>
 
-        {todayEntry && !saved ? (
-          <View style={[styles.alreadyCard, cardShadow]}>
-            <Text style={[styles.alreadyText, { color: colors.textSecondary, fontFamily: 'Outfit_400Regular' }]}>
-              Ya registraste hoy: {moodScoreToEmoji(todayEntry.score)} ({todayEntry.score}/10)
-            </Text>
-            <Text style={[styles.alreadySubtext, { color: colors.textSecondary, fontFamily: 'Outfit_400Regular' }]}>
-              Podes actualizar tu registro abajo
-            </Text>
+      {/* Today's summary card */}
+      {todayEntry && loaded ? (
+        <View style={[styles.todayCard, cardShadow]}>
+          <View style={styles.todayCardHeader}>
+            <View style={[styles.todayCheckCircle, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={styles.todayCheckText}>{'\u2713'}</Text>
+            </View>
+            <Text style={[styles.todayRegistered, { color: colors.text }]}>Ya registraste hoy</Text>
           </View>
-        ) : null}
+          <View style={styles.todayScoreRow}>
+            <Text style={styles.todayEmoji}>{moodScoreToEmoji(todayEntry.score)}</Text>
+            <Text style={[styles.todayScore, { color: colors.text }]}>{todayEntry.score}/10</Text>
+          </View>
+          {todayEmotions.length > 0 && (
+            <View style={styles.todayEmotionsRow}>
+              {todayEmotions.map((em: string, i: number) => (
+                <View key={i} style={[styles.emotionTag, { backgroundColor: colors.accent }]}>
+                  <Text style={[styles.emotionTagText, { color: colors.primary }]}>{getEmotionLabel(em)}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <TouchableOpacity
+            style={[styles.editBtn, { borderColor: colors.primary }]}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar registro</Text>
+          </TouchableOpacity>
+        </View>
+      ) : loaded ? (
+        <TouchableOpacity
+          style={[styles.registerPromptCard, cardShadow, { borderColor: colors.primary }]}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.registerPromptText, { color: colors.text }]}>
+            Todavia no registraste tu dia
+          </Text>
+          <Text style={[styles.registerPromptSub, { color: colors.textSecondary }]}>
+            Toca para registrar como te sentis
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
-        {/* Mood Score Card */}
-        <View style={[styles.card, cardShadow]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>¿Como te sientes ahora?</Text>
-          <Text style={styles.moodEmoji}>{moodScoreToEmoji(score)}</Text>
+      {/* Tareas de tu profesional */}
+      {loaded && tasks.filter((t) => t.status === 'pending').length > 0 && (
+        <>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Tareas de tu profesional</Text>
+          </View>
+          {tasks.filter((t) => t.status === 'pending').map((task) => (
+            <View key={task.id} style={[styles.taskCard, cardShadow]}>
+              <Text style={[styles.taskDescription, { color: colors.text }]}>{task.description}</Text>
+              <TouchableOpacity
+                style={[styles.taskCompleteBtn, { backgroundColor: colors.primary }]}
+                onPress={async () => {
+                  await completeTask(task.id);
+                  setTasks((prev) =>
+                    prev.map((t) => t.id === task.id ? { ...t, status: 'completed' } : t)
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.taskCompleteBtnText}>Completar</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          {tasks.filter((t) => t.status === 'completed').length > 0 && (
+            <View style={styles.completedTasksSection}>
+              {tasks.filter((t) => t.status === 'completed').map((task) => (
+                <View key={task.id} style={[styles.taskCardCompleted, cardShadow]}>
+                  <Text style={[styles.taskCheckmark, { color: '#27AE60' }]}>{'\u2713'}</Text>
+                  <Text style={[styles.taskDescriptionCompleted, { color: colors.textSecondary }]}>
+                    {task.description}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
+      )}
 
-          <View style={styles.circlesRow}>
-            {moodGradientColors.map((color, i) => {
-              const n = i + 1;
-              const isSelected = n === score;
+      {/* Mini history (last 7 days) */}
+      {loaded && recentEntries.length > 0 && (
+        <View style={[styles.historyCard, cardShadow]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Ultima semana</Text>
+          <View style={styles.miniHistoryRow}>
+            {last7.map((dateStr) => {
+              const entry = entryMap[dateStr];
+              const bgColor = entry ? moodScoreToColor(entry.score) : '#E8E8E8';
               return (
-                <TouchableOpacity
-                  key={n}
-                  style={[
-                    styles.moodCircle,
-                    {
-                      backgroundColor: color,
-                      width: isSelected ? 38 : 28,
-                      height: isSelected ? 38 : 28,
-                      borderRadius: isSelected ? 19 : 14,
-                    },
-                  ]}
-                  onPress={() => setScore(n)}
-                  activeOpacity={0.7}
-                />
+                <View key={dateStr} style={styles.miniDayCol}>
+                  <View style={[styles.miniSquare, { backgroundColor: bgColor }]} />
+                  <Text style={[styles.miniDayLabel, { color: colors.textSecondary }]}>
+                    {getDayLabel(dateStr)}
+                  </Text>
+                </View>
               );
             })}
           </View>
-          <View style={styles.moodLabelsRow}>
-            <Text style={[styles.moodLabel, { color: colors.textSecondary }]}>CRITICO</Text>
-            <Text style={[styles.moodLabel, { color: colors.textSecondary }]}>NEUTRAL</Text>
-            <Text style={[styles.moodLabel, { color: colors.textSecondary }]}>RADIANTE</Text>
+        </View>
+      )}
+
+      {/* Quick insight card */}
+      {topCorrelation && insightDiff && parseFloat(insightDiff) > 0 && (
+        <View style={[styles.insightCard, cardShadow]}>
+          <View style={[styles.insightBorder, { backgroundColor: colors.primary }]} />
+          <View style={styles.insightContent}>
+            <Text style={[styles.insightText, { color: colors.text }]}>
+              Los dias que {topCorrelation.name.toLowerCase()} tu animo mejora +{insightDiff}
+            </Text>
           </View>
         </View>
+      )}
 
-        {/* Activities */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>¿Que has estado haciendo?</Text>
-        </View>
-        <View style={styles.activitiesWrap}>
-          {activities.map((act) => {
-            const selected = selectedActivities.includes(act.id);
-            return (
-              <TouchableOpacity
-                key={act.id}
-                style={[
-                  styles.activityChip,
-                  selected
-                    ? { backgroundColor: colors.primary, borderColor: colors.primary, borderWidth: 1 }
-                    : { backgroundColor: '#FFFFFF', borderColor: colors.border, borderWidth: 1 },
-                ]}
-                onPress={() => toggleActivity(act.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.activityEmoji}>{act.emoji}</Text>
-                <Text
-                  style={[
-                    styles.activityText,
-                    { color: selected ? '#FFFFFF' : colors.text },
-                  ]}
-                >
-                  {act.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-          <TouchableOpacity
-            style={[styles.activityChip, styles.addChip, { borderColor: colors.border }]}
-            onPress={() => setShowAddActivity(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.activityText, { color: colors.textSecondary }]}>+ Agregar</Text>
+      {/* Recommended psychologists */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesionales recomendados</Text>
+      </View>
+      {MOCK_PSYCHOLOGISTS.map((psych, i) => (
+        <View key={i} style={[styles.psychCard, cardShadow]}>
+          <View style={styles.psychInfo}>
+            <Text style={[styles.psychName, { color: colors.text }]}>{psych.name}</Text>
+            <Text style={[styles.psychSpecialty, { color: colors.textSecondary }]}>{psych.specialty}</Text>
+            <Text style={[styles.psychRating, { color: colors.text }]}>
+              {'\u2B50'} {psych.rating}
+            </Text>
+          </View>
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={[styles.psychLink, { color: colors.primary }]}>Ver perfil</Text>
           </TouchableOpacity>
         </View>
+      ))}
 
-        {showAddActivity && (
-          <View style={styles.addActivityRow}>
-            <TextInput
-              style={[styles.addActivityInput, { backgroundColor: '#f6f3f2', color: colors.text }]}
-              placeholder="Nombre de la actividad"
-              placeholderTextColor={colors.textSecondary}
-              value={newActivityName}
-              onChangeText={setNewActivityName}
-              onSubmitEditing={handleAddActivity}
-            />
-            <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: colors.primary }]}
-              onPress={handleAddActivity}
-            >
-              <Text style={styles.addBtnText}>+</Text>
-            </TouchableOpacity>
+      {/* Wellness tips */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Para tu bienestar</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tipsRow}
+      >
+        {WELLNESS_TIPS.map((tip, i) => (
+          <View key={i} style={[styles.tipCard, cardShadow, { backgroundColor: colors.accent }]}>
+            <Text style={[styles.tipText, { color: colors.text }]}>{tip}</Text>
           </View>
-        )}
+        ))}
+      </ScrollView>
 
-        {/* Notes */}
-        <View style={[styles.card, cardShadow, { marginTop: 20 }]}>
-          <View style={styles.notesTitleRow}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Notas del dia</Text>
-            <View style={[styles.encryptedBadge, { backgroundColor: '#E8F5E9' }]}>
-              <Text style={[styles.encryptedText, { color: colors.success }]}>🔒 Encriptado</Text>
-            </View>
-          </View>
-          <TextInput
-            style={[styles.notesInput, { backgroundColor: '#f6f3f2', color: colors.text }]}
-            placeholder="¿Algo que quieras recordar de hoy?"
-            placeholderTextColor={colors.textSecondary}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* Save Button */}
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            { backgroundColor: saved ? colors.success : colors.primary },
-            cardShadow,
-          ]}
-          onPress={handleSave}
-          disabled={saved}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.saveButtonText}>
-            {saved ? '✓ Guardado!' : 'Guardar dia'}
-          </Text>
-        </TouchableOpacity>
+      {/* Mood Registration Modal */}
+      <MoodRegistrationModal
+        visible={modalVisible}
+        onClose={handleModalClose}
+        onSaved={handleModalSaved}
+      />
     </AppContainer>
   );
 }
@@ -259,124 +318,248 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textTransform: 'capitalize',
   },
-  alreadyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 16,
-    marginBottom: 16,
-  },
-  alreadyText: { fontSize: 14, textAlign: 'center' },
-  alreadySubtext: { fontSize: 12, textAlign: 'center', marginTop: 4 },
-  card: {
+
+  // Today's summary card
+  todayCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    marginBottom: 16,
-  },
-  moodEmoji: { fontSize: 52, textAlign: 'center', marginBottom: 20 },
-  circlesRow: {
+  todayCardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  todayCheckCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
   },
-  moodCircle: {
-    // width/height/borderRadius set dynamically
+  todayCheckText: {
+    fontSize: 16,
+    color: '#27AE60',
+    fontFamily: 'Outfit_600SemiBold',
   },
-  moodLabelsRow: {
+  todayRegistered: {
+    fontSize: 16,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  todayScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  todayEmoji: {
+    fontSize: 36,
+  },
+  todayScore: {
+    fontSize: 28,
+    fontFamily: 'PlayfairDisplay_700Bold',
+  },
+  todayEmotionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  emotionTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  emotionTagText: {
+    fontSize: 13,
+    fontFamily: 'Outfit_500Medium',
+  },
+  editBtn: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  editBtnText: {
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+
+  // Register prompt card (when no entry today)
+  registerPromptCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  registerPromptText: {
+    fontSize: 17,
+    fontFamily: 'PlayfairDisplay_600SemiBold',
+    marginBottom: 4,
+  },
+  registerPromptSub: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+  },
+
+  // Mini history
+  historyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+  },
+  miniHistoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginTop: 4,
+    marginTop: 16,
   },
-  moodLabel: {
-    fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
-    letterSpacing: 1,
+  miniDayCol: {
+    alignItems: 'center',
+    gap: 6,
   },
-  sectionHeader: {
+  miniSquare: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  miniDayLabel: {
+    fontSize: 12,
+    fontFamily: 'Outfit_500Medium',
+  },
+
+  // Insight card
+  insightCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    marginBottom: 20,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  insightBorder: {
+    width: 4,
+  },
+  insightContent: {
+    flex: 1,
+    padding: 20,
+  },
+  insightText: {
+    fontSize: 15,
+    fontFamily: 'Outfit_500Medium',
+    lineHeight: 22,
+  },
+
+  // Sections
+  sectionHeaderRow: {
     marginBottom: 12,
-    marginTop: 8,
+    marginTop: 4,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'PlayfairDisplay_700Bold',
   },
-  activitiesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  activityChip: {
+
+  // Psychologist cards
+  psychCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    gap: 6,
   },
-  addChip: {
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    backgroundColor: 'transparent',
+  psychInfo: {
+    flex: 1,
+    gap: 4,
   },
-  activityEmoji: { fontSize: 16 },
-  activityText: {
+  psychName: {
+    fontSize: 16,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  psychSpecialty: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+  },
+  psychRating: {
+    fontSize: 13,
+    fontFamily: 'Outfit_500Medium',
+    marginTop: 2,
+  },
+  psychLink: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+
+  // Wellness tips
+  tipsRow: {
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 20,
+  },
+  tipCard: {
+    width: 180,
+    borderRadius: 24,
+    padding: 20,
+  },
+  tipText: {
     fontSize: 14,
     fontFamily: 'Outfit_500Medium',
+    lineHeight: 20,
   },
-  addActivityRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  addActivityInput: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
-  },
-  addBtn: {
-    borderRadius: 16,
-    width: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addBtnText: { color: '#fff', fontSize: 22, fontFamily: 'Outfit_600SemiBold' },
-  notesTitleRow: {
+
+  // Tasks
+  taskCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  encryptedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
+  taskDescription: {
+    fontSize: 15,
+    fontFamily: 'Outfit_500Medium',
+    flex: 1,
+    lineHeight: 22,
   },
-  encryptedText: {
-    fontSize: 11,
+  taskCompleteBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  taskCompleteBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontFamily: 'Outfit_600SemiBold',
   },
-  notesInput: {
-    borderRadius: 16,
+  completedTasksSection: {
+    marginBottom: 8,
+  },
+  taskCardCompleted: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 16,
-    fontSize: 15,
-    fontFamily: 'Outfit_400Regular',
-    minHeight: 100,
-  },
-  saveButton: {
-    borderRadius: 16,
-    padding: 18,
+    marginBottom: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 10,
+    opacity: 0.7,
   },
-  saveButtonText: {
-    color: '#fff',
+  taskCheckmark: {
     fontSize: 18,
     fontFamily: 'Outfit_600SemiBold',
+  },
+  taskDescriptionCompleted: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    textDecorationLine: 'line-through',
+    flex: 1,
   },
 });

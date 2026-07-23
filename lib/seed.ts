@@ -2,7 +2,7 @@
 // Run this once to populate the DB with sample data
 import {
   createUser, getUserByEmail, createActivity, createMoodEntry,
-  createJournalEntry, linkPatientToPsych,
+  createJournalEntry, linkPatientToPsych, createTask,
 } from './database';
 import { hashPassword, deriveKey, generateKeyPair, encryptText } from './crypto';
 import naclUtil from 'tweetnacl-util';
@@ -65,43 +65,38 @@ export async function seedMockData() {
 
   // ── Create activities for Agustín ──
   const activities = [
-    { id: 'act_correr', name: 'Correr', emoji: '🏃' },
-    { id: 'act_trabajar', name: 'Trabajar', emoji: '💻' },
-    { id: 'act_dormir', name: 'Dormir bien', emoji: '😴' },
-    { id: 'act_amigos', name: 'Amigos', emoji: '🤝' },
-    { id: 'act_meditar', name: 'Meditar', emoji: '🧘' },
-    { id: 'act_leer', name: 'Leer', emoji: '📚' },
-    { id: 'act_cocinar', name: 'Cocinar', emoji: '🍳' },
-    { id: 'act_musica', name: 'Música', emoji: '🎵' },
+    'Correr', 'Trabajar', 'Dormir bien', 'Amigos',
+    'Meditar', 'Leer', 'Cocinar', 'Música',
   ];
 
-  for (const act of activities) {
-    await createActivity(act.id, agustinId, act.name, act.emoji, '#6C5CE7');
+  const actIds = activities.map((name, i) => `act_${name.toLowerCase().replace(/ /g, '_')}`);
+  for (let i = 0; i < activities.length; i++) {
+    await createActivity(actIds[i], agustinId, activities[i], '', '#6C5CE7');
   }
 
   // ── Create 21 days of mood entries ──
   const moodData: { daysAgo: number; score: number; acts: string[]; note: string }[] = [
     { daysAgo: 0, score: 7, acts: ['act_trabajar', 'act_correr'], note: 'Buen día, productivo en el trabajo y salí a correr 5k.' },
-    { daysAgo: 1, score: 8, acts: ['act_amigos', 'act_musica'], note: 'Salí con amigos a un recital. Muy buena energía.' },
+    { daysAgo: 1, score: 8, acts: ['act_amigos', 'act_música'], note: 'Salí con amigos a un recital. Muy buena energía.' },
     { daysAgo: 2, score: 5, acts: ['act_trabajar'], note: 'Día normal de trabajo, nada especial. Un poco cansado.' },
-    { daysAgo: 3, score: 9, acts: ['act_correr', 'act_dormir', 'act_amigos'], note: 'Día increíble. Corrí 10k por primera vez, dormí genial la noche anterior.' },
+    { daysAgo: 3, score: 9, acts: ['act_correr', 'act_dormir_bien', 'act_amigos'], note: 'Día increíble. Corrí 10k por primera vez, dormí genial la noche anterior.' },
     { daysAgo: 4, score: 4, acts: ['act_trabajar'], note: 'Discusión en el trabajo. Me costó concentrarme después.' },
     { daysAgo: 5, score: 6, acts: ['act_meditar', 'act_leer'], note: 'Medité 20 minutos a la mañana. Leí un rato antes de dormir.' },
     { daysAgo: 6, score: 3, acts: [], note: 'Mal día. Insomnio, ansiedad, no pude hacer nada productivo.' },
-    { daysAgo: 7, score: 7, acts: ['act_cocinar', 'act_musica'], note: 'Cociné algo rico, escuché música tranquila. Recuperándome.' },
-    { daysAgo: 8, score: 8, acts: ['act_correr', 'act_dormir'], note: 'Corrí temprano, dormí 8 horas. Me siento con mucha energía.' },
+    { daysAgo: 7, score: 7, acts: ['act_cocinar', 'act_música'], note: 'Cociné algo rico, escuché música tranquila. Recuperándome.' },
+    { daysAgo: 8, score: 8, acts: ['act_correr', 'act_dormir_bien'], note: 'Corrí temprano, dormí 8 horas. Me siento con mucha energía.' },
     { daysAgo: 9, score: 6, acts: ['act_trabajar', 'act_leer'], note: 'Trabajo normal. Leí un capítulo del libro que estoy leyendo.' },
     { daysAgo: 10, score: 7, acts: ['act_amigos', 'act_cocinar'], note: 'Cena con amigos en casa. Cociné pasta.' },
     { daysAgo: 11, score: 5, acts: ['act_trabajar'], note: 'Día pesado. Muchas reuniones.' },
-    { daysAgo: 12, score: 8, acts: ['act_meditar', 'act_correr', 'act_dormir'], note: 'Rutina perfecta: meditar, correr, dormir bien. Me siento genial.' },
+    { daysAgo: 12, score: 8, acts: ['act_meditar', 'act_correr', 'act_dormir_bien'], note: 'Rutina perfecta: meditar, correr, dormir bien. Me siento genial.' },
     { daysAgo: 13, score: 4, acts: ['act_trabajar'], note: 'Estrés por un deadline. No almorcé.' },
-    { daysAgo: 14, score: 6, acts: ['act_leer', 'act_musica'], note: 'Fin de semana tranquilo. Leí y escuché vinilos.' },
+    { daysAgo: 14, score: 6, acts: ['act_leer', 'act_música'], note: 'Fin de semana tranquilo. Leí y escuché vinilos.' },
     { daysAgo: 15, score: 7, acts: ['act_amigos'], note: 'Asado con amigos. Buen humor general.' },
-    { daysAgo: 16, score: 9, acts: ['act_correr', 'act_amigos', 'act_dormir'], note: 'Corrí con un amigo. Mejor día de la semana.' },
+    { daysAgo: 16, score: 9, acts: ['act_correr', 'act_amigos', 'act_dormir_bien'], note: 'Corrí con un amigo. Mejor día de la semana.' },
     { daysAgo: 17, score: 5, acts: ['act_trabajar'], note: 'Lunes. Normal.' },
     { daysAgo: 18, score: 3, acts: [], note: 'Dormí mal, dolor de cabeza todo el día.' },
     { daysAgo: 19, score: 6, acts: ['act_meditar'], note: 'Medité para relajarme. Ayudó un poco.' },
-    { daysAgo: 20, score: 7, acts: ['act_cocinar', 'act_dormir'], note: 'Buen descanso, cociné algo nuevo.' },
+    { daysAgo: 20, score: 7, acts: ['act_cocinar', 'act_dormir_bien'], note: 'Buen descanso, cociné algo nuevo.' },
   ];
 
   for (const entry of moodData) {
@@ -128,6 +123,11 @@ export async function seedMockData() {
     const encryptedResponse = encryptText(j.response, agustinKey);
     await createJournalEntry(genId(), agustinId, dateStr(j.daysAgo), j.prompt, encryptedResponse);
   }
+
+  // ── Create tasks for Agustín from Marcela ──
+  await createTask(genId(), marcelaId, agustinId, 'Registrá tu ánimo 2 veces al día esta semana', null);
+  await createTask(genId(), marcelaId, agustinId, 'Escribí en el journal sobre cómo te sentís en el trabajo', null);
+  await createTask(genId(), marcelaId, agustinId, 'Practicá 5 minutos de respiración consciente antes de dormir', null);
 
   console.log('✅ Mock data seeded successfully');
   console.log('📧 Patient: agustinbava@nunis.com / 1234');

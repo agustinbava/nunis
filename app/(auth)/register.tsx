@@ -7,7 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth-context';
 
-const BG_IMAGE = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=1400&q=80';
+const BG_IMAGE = 'https://images.unsplash.com/photo-1545389336-cf090694435e?w=1200&q=90';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -26,8 +26,12 @@ export default function RegisterScreen() {
       setError('Completá todos los campos');
       return;
     }
-    if (password.length < 4) {
-      setError('La contraseña debe tener al menos 4 caracteres');
+    if (password.length < 7) {
+      setError('La contraseña debe tener al menos 7 caracteres');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('La contraseña debe incluir al menos una letra y un número');
       return;
     }
     setLoading(true);
@@ -50,7 +54,7 @@ export default function RegisterScreen() {
             <View style={[styles.content, isWide && { maxWidth: 440, alignSelf: 'center', width: '100%' }]}>
               <View style={styles.header}>
                 <Image
-                  source={require('../../assets/nunis-logo.jpg')}
+                  source={require('../../assets/nunis-logo.png')}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
@@ -103,7 +107,7 @@ export default function RegisterScreen() {
                 <Text style={styles.label}>Contraseña</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Mínimo 4 caracteres"
+                  placeholder="Mínimo 7 caracteres, con letras y números"
                   placeholderTextColor="rgba(255,255,255,0.3)"
                   value={password}
                   onChangeText={setPassword}

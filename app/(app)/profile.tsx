@@ -100,8 +100,10 @@ export default function ProfileScreen() {
         <View style={styles.userSection}>
           <Text style={[styles.userName, { color: colors.text }]}>{user?.name}</Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
-          <View style={[styles.planBadge, { backgroundColor: colors.accent }]}>
-            <Text style={[styles.planBadgeText, { color: colors.primary }]}>Plan gratuito</Text>
+          <View style={[styles.planBadge, { backgroundColor: user?.role === 'psychologist' ? '#E8F5E9' : colors.accent }]}>
+            <Text style={[styles.planBadgeText, { color: user?.role === 'psychologist' ? '#27AE60' : colors.primary }]}>
+              {user?.role === 'psychologist' ? 'Profesional' : 'Miembro'}
+            </Text>
           </View>
           <Text style={[styles.shareCode, { color: colors.textSecondary }]}>
             Tu codigo:{' '}
