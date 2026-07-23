@@ -645,11 +645,17 @@ const styles = StyleSheet.create({
   // Logout
   logoutLink: {
     alignSelf: 'center',
-    marginTop: 20,
-    paddingVertical: 12,
+    marginTop: 28,
+    marginBottom: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: '#E5E1EE',
+    backgroundColor: '#FFFFFF',
   },
   logoutText: {
     fontSize: 14,
-    fontFamily: 'Outfit_500Medium',
+    fontFamily: 'Outfit_600SemiBold',
   },
 });
