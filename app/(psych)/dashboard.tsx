@@ -122,8 +122,8 @@ export default function PsychDashboardScreen() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.replace('/');
   };
 

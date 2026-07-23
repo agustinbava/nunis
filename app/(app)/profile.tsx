@@ -84,8 +84,8 @@ export default function ProfileScreen() {
     await loadData();
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.replace('/');
   };
 

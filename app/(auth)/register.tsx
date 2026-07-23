@@ -135,7 +135,7 @@ export default function RegisterScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => router.back()} style={styles.link}>
+                <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.link}>
                   <Text style={styles.linkText}>
                     Ya tengo cuenta. <Text style={styles.linkAccent}>Iniciar sesión</Text>
                   </Text>

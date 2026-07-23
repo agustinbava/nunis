@@ -26,7 +26,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string, role: 'patient' | 'psychologist') => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
-  logout: () => {},
+  logout: async () => {},
   refreshUser: async () => {},
 });
 
@@ -135,9 +135,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Limpiar el estado primero para que la UI cierre sesión al instante,
+    // aunque el signOut de red tarde o falle.
     setUser(null);
     setEncryptionKey(null);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignorar: la sesión local ya se limpió
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
