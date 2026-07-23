@@ -164,8 +164,8 @@
 </label>
 <div class="relative">
 <input class="w-full bg-surface-container-low border-transparent focus:border-calma-primary focus:ring-0 rounded-2xl px-5 py-4 font-body-md text-body-md text-on-surface transition-all duration-300 ease-out placeholder:text-outline/60 outline-none" id="password" name="password" placeholder="Tu contraseña" type="password"/>
-<button aria-label="Toggle password visibility" class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors" type="button">
-<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+<button aria-label="Mostrar contraseña" aria-pressed="false" class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors" id="togglePassword" type="button">
+<span class="material-symbols-outlined" data-icon="visibility" id="togglePasswordIcon">visibility</span>
 </button>
 </div>
 </div>
@@ -191,6 +191,22 @@
 </div>
 </div>
 <script>
+  // Mostrar/ocultar contraseña
+  (function () {
+    var btn = document.getElementById('togglePassword');
+    var icon = document.getElementById('togglePasswordIcon');
+    var input = document.getElementById('password');
+    if (!btn || !icon || !input) return;
+    btn.addEventListener('click', function () {
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      icon.textContent = show ? 'visibility_off' : 'visibility';
+      btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      input.focus();
+    });
+  })();
+
   document.querySelector('form').addEventListener('submit', function(e) {
     e.preventDefault();
     var email = document.getElementById('email').value;
