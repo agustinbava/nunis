@@ -124,7 +124,11 @@ export default function PsychDashboardScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/');
+    if (Platform.OS === 'web') {
+      window.location.assign('/');
+    } else {
+      router.replace('/');
+    }
   };
 
   const handleCopy = async () => {

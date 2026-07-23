@@ -86,7 +86,12 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/');
+    if (Platform.OS === 'web') {
+      // Recarga completa: garantiza el estado deslogueado sin depender del router.
+      window.location.assign('/');
+    } else {
+      router.replace('/');
+    }
   };
 
   const codeInputRef = useRef<TextInput>(null);
@@ -510,6 +515,7 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     marginTop: 8,
+    marginBottom: 48, // separar de la tab bar flotante para que el click no caiga en ella
   },
   logoutText: {
     fontSize: 16,
