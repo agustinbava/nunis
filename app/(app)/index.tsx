@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppContainer from '../../components/AppContainer';
 import MoodRegistrationModal from '../../components/MoodRegistrationModal';
 import ProfessionalModal from '../../components/ProfessionalModal';
 import NotificationPopup from '../../components/NotificationPopup';
+import NotificationsModal from '../../components/NotificationsModal';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import {
@@ -67,8 +69,20 @@ export default function HomeScreen() {
   const [profModalVisible, setProfModalVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifMessages, setNotifMessages] = useState<any[]>([]);
+  const [notifCenterVisible, setNotifCenterVisible] = useState(false);
   const notifShownRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
+
+  const unreadCount = messages.filter((m) => !m.read_at).length;
+
+  const openNotifCenter = async () => {
+    setNotifCenterVisible(true);
+    const unreadIds = messages.filter((m) => !m.read_at).map((m) => m.id);
+    if (unreadIds.length) {
+      setMessages((prev) => prev.map((m) => unreadIds.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m));
+      for (const id of unreadIds) { try { await markMessageRead(id); } catch {} }
+    }
+  };
 
   const openProfessional = (p: any) => {
     setSelectedProf(p);
@@ -181,11 +195,21 @@ export default function HomeScreen() {
   return (
     <AppContainer>
       {/* Header */}
-      <Image
-        source={require('../../assets/nunis-logo.png')}
-        style={styles.headerLogo}
-        resizeMode="contain"
-      />
+      <View style={styles.headerRow}>
+        <Image
+          source={require('../../assets/nunis-logo.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        <TouchableOpacity style={styles.bellBtn} onPress={openNotifCenter} activeOpacity={0.7}>
+          <Ionicons name="notifications-outline" size={24} color={colors.text} />
+          {unreadCount > 0 && (
+            <View style={[styles.bellBadge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
       <Text style={[styles.greeting, { color: colors.text }]}>
         Hola, {user?.name?.split(' ')[0]}
       </Text>
@@ -237,31 +261,6 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
       ) : null}
-
-      {/* Mensajes de tu profesional */}
-      {loaded && messages.length > 0 && (
-        <>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Mensajes de tu profesional</Text>
-          </View>
-          {messages.map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              style={[styles.messageCard, cardShadow, !m.read_at && { borderLeftWidth: 4, borderLeftColor: colors.primary }]}
-              activeOpacity={0.8}
-              onPress={() => openMessage(m)}
-            >
-              <View style={styles.messageHeader}>
-                <Text style={[styles.messageFrom, { color: colors.primary }]}>{m.psych_name}</Text>
-                {!m.read_at && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-                <View style={{ flex: 1 }} />
-                <Text style={[styles.messageTime, { color: colors.textSecondary }]}>{formatMsgDateTime(m.created_at)}</Text>
-              </View>
-              <Text style={[styles.messageBody, { color: colors.text }]}>{m.body}</Text>
-            </TouchableOpacity>
-          ))}
-        </>
-      )}
 
       {/* Tareas de tu profesional */}
       {loaded && tasks.filter((t) => t.status === 'pending').length > 0 && (
@@ -413,6 +412,13 @@ export default function HomeScreen() {
         messages={notifMessages}
         onClose={dismissNotifPopup}
       />
+
+      {/* Centro de notificaciones (campanita) */}
+      <NotificationsModal
+        visible={notifCenterVisible}
+        messages={messages}
+        onClose={() => setNotifCenterVisible(false)}
+      />
     </AppContainer>
   );
 }
@@ -426,10 +432,44 @@ const cardShadow = {
 };
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   headerLogo: {
     width: 120,
     height: 44,
-    marginBottom: 16,
+  },
+  bellBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bellBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontFamily: 'Outfit_600SemiBold',
   },
   greeting: {
     fontSize: 28,
