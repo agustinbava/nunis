@@ -14,6 +14,7 @@ import {
 } from '../../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../../constants/themes';
 import { supabase } from '../../../lib/supabase';
+import { generatePatientReport } from '../../../lib/report';
 
 export default function PatientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,6 +32,16 @@ export default function PatientDetailScreen() {
   const [notes, setNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const handleReport = async () => {
+    if (reportLoading || !patient) return;
+    setReportLoading(true);
+    try {
+      await generatePatientReport(patient, entries, correlations, tasks);
+    } catch {}
+    setReportLoading(false);
+  };
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiTopics, setAiTopics] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -272,6 +283,18 @@ export default function PatientDetailScreen() {
             {aiError ? <Text style={[styles.aiError, { color: colors.danger }]}>{aiError}</Text> : null}
           </View>
         </View>
+
+        {/* Reporte PDF */}
+        <TouchableOpacity
+          style={[styles.reportBtn, { borderColor: colors.primary }]}
+          onPress={handleReport}
+          disabled={reportLoading}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.reportBtnText, { color: colors.primary }]}>
+            {reportLoading ? 'Generando...' : 'Descargar reporte de progreso (PDF)'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Tab Row */}
         <View style={styles.tabRow}>
@@ -731,6 +754,18 @@ const styles = StyleSheet.create({
   },
 
   // Tabs
+  reportBtn: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  reportBtnText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
   tabRow: {
     flexDirection: 'row',
     gap: 10,
