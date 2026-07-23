@@ -278,3 +278,34 @@ export async function getProfessional(id: string) {
   if (error) throw new Error(error.message);
   return data;
 }
+
+// ── Registro de ingresos del psicólogo ──
+export async function createIncome(
+  id: string, psychId: string, patientId: string, amount: number,
+  sessionDate: string, status: 'paid' | 'pending', note: string | null
+) {
+  const { error } = await supabase.from('session_income').insert({
+    id, psychologist_id: psychId, patient_id: patientId,
+    amount, session_date: sessionDate, status, note,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getPsychIncome(psychId: string) {
+  const { data, error } = await supabase.from('session_income')
+    .select('*, patient:profiles!patient_id(name)')
+    .eq('psychologist_id', psychId)
+    .order('session_date', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({ ...r, patient_name: r.patient?.name ?? 'Paciente' }));
+}
+
+export async function updateIncomeStatus(id: string, status: 'paid' | 'pending') {
+  const { error } = await supabase.from('session_income').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteIncome(id: string) {
+  const { error } = await supabase.from('session_income').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}

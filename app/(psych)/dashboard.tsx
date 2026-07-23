@@ -9,6 +9,7 @@ import { useAuth } from '../../lib/auth-context';
 import { getPsychPatients, getMoodEntries } from '../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../constants/themes';
 import BroadcastModal from '../../components/BroadcastModal';
+import IncomeModal from '../../components/IncomeModal';
 
 const AVATAR_COLORS = [
   '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
@@ -71,6 +72,7 @@ export default function PsychDashboardScreen() {
   const [filter, setFilter] = useState<'todos' | 'urgentes'>('todos');
   const [copied, setCopied] = useState(false);
   const [broadcastVisible, setBroadcastVisible] = useState(false);
+  const [incomeVisible, setIncomeVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -184,15 +186,24 @@ export default function PsychDashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Enviar mensaje / broadcast */}
-        <TouchableOpacity
-          style={[styles.broadcastBtn, { backgroundColor: colors.primary }]}
-          onPress={() => setBroadcastVisible(true)}
-          activeOpacity={0.85}
-          disabled={patients.length === 0}
-        >
-          <Text style={styles.broadcastBtnText}>Enviar mensaje a pacientes</Text>
-        </TouchableOpacity>
+        {/* Acciones rápidas */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setBroadcastVisible(true)}
+            activeOpacity={0.85}
+            disabled={patients.length === 0}
+          >
+            <Text style={styles.actionBtnText}>Enviar mensaje</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
+            onPress={() => setIncomeVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Ingresos</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -361,6 +372,13 @@ export default function PsychDashboardScreen() {
         psychId={user?.id || ''}
         patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
         onClose={() => setBroadcastVisible(false)}
+      />
+
+      <IncomeModal
+        visible={incomeVisible}
+        psychId={user?.id || ''}
+        patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
+        onClose={() => setIncomeVisible(false)}
       />
     </SafeAreaView>
   );
@@ -661,13 +679,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
   },
 
-  broadcastBtn: {
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
     marginBottom: 20,
   },
-  broadcastBtnText: {
+  actionBtn: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 15,
+    alignItems: 'center',
+  },
+  actionBtnOutline: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+  },
+  actionBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontFamily: 'Outfit_600SemiBold',

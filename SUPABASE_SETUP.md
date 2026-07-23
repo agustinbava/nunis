@@ -84,6 +84,15 @@ Esto hace que Marcela mande un mensaje de bienvenida a Agustín y una recomendac
 
 Sin el paso 1, la app funciona igual pero la sección de mensajes y el directorio salen vacíos.
 
+## 5d. Registro de ingresos del psicólogo
+
+Para el ledger de ingresos en el dashboard (botón "Ingresos"):
+1. En el **SQL Editor**, corré [`supabase/income.sql`](supabase/income.sql) (additivo, crea la tabla `session_income` con RLS).
+2. (Opcional) datos de demo:
+```bash
+cd ~/Documents/nunis && node scripts/seed-income.mjs
+```
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.
