@@ -93,6 +93,11 @@ Para el ledger de ingresos en el dashboard (botón "Ingresos"):
 cd ~/Documents/nunis && node scripts/seed-income.mjs
 ```
 
+## 5e. Notas de sesión del psicólogo
+
+Para las notas clínicas privadas por paciente (pestaña "Notas" en la vista de paciente):
+- En el **SQL Editor**, corré [`supabase/notes.sql`](supabase/notes.sql) (additivo, tabla `session_notes` con RLS: solo el psicólogo dueño la ve).
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

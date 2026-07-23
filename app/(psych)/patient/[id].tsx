@@ -10,6 +10,7 @@ import {
   getUserById, getAllMoodEntries, getEntryActivities,
   getCorrelationData, getJournalEntries, getPsychPatients,
   createTask, getPatientTasks,
+  createSessionNote, getSessionNotes, deleteSessionNote,
 } from '../../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../../constants/themes';
 import { supabase } from '../../../lib/supabase';
@@ -24,9 +25,12 @@ export default function PatientDetailScreen() {
   const [correlations, setCorrelations] = useState<any[]>([]);
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any>(null);
-  const [tab, setTab] = useState<'resumen' | 'historial' | 'correlaciones'>('resumen');
+  const [tab, setTab] = useState<'resumen' | 'historial' | 'correlaciones' | 'notas'>('resumen');
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiTopics, setAiTopics] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -70,7 +74,31 @@ export default function PatientDetailScreen() {
 
     const patientTasks = await getPatientTasks(id);
     setTasks(patientTasks);
+
+    try {
+      const notesData = await getSessionNotes(id);
+      setNotes(notesData);
+    } catch { setNotes([]); }
   }, [id, user]);
+
+  const handleSaveNote = async () => {
+    if (!newNote.trim() || !user || !id || savingNote) return;
+    setSavingNote(true);
+    try {
+      const noteId = 'note_' + Math.random().toString(36).slice(2, 14);
+      const today = new Date().toISOString().split('T')[0];
+      await createSessionNote(noteId, user.id, id, newNote.trim(), today);
+      setNewNote('');
+      const notesData = await getSessionNotes(id);
+      setNotes(notesData);
+    } catch {}
+    setSavingNote(false);
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    try { await deleteSessionNote(noteId); } catch {}
+  };
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -112,6 +140,7 @@ export default function PatientDetailScreen() {
     { key: 'resumen' as const, label: 'Resumen' },
     { key: 'historial' as const, label: 'Historial' },
     { key: 'correlaciones' as const, label: 'Correlaciones' },
+    { key: 'notas' as const, label: 'Notas' },
   ];
 
   return (
@@ -258,7 +287,7 @@ export default function PatientDetailScreen() {
               onPress={() => setTab(t.key)}
               activeOpacity={0.7}
             >
-              <Text style={[
+              <Text numberOfLines={1} style={[
                 styles.tabPillText,
                 { color: tab === t.key ? '#FFFFFF' : colors.textSecondary },
               ]}>
@@ -422,6 +451,53 @@ export default function PatientDetailScreen() {
                   </View>
                 );
               })
+            )}
+          </View>
+        )}
+
+        {tab === 'notas' && (
+          <View style={styles.card}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Notas de sesion</Text>
+            <Text style={[styles.notesHint, { color: colors.textSecondary }]}>
+              Privadas: solo vos las ves. Quedan pegadas al historial del paciente.
+            </Text>
+            <TextInput
+              style={[styles.noteInput, { color: colors.text, borderColor: colors.textSecondary + '30' }]}
+              placeholder="Escribi la nota de la sesion de hoy..."
+              placeholderTextColor={colors.textSecondary}
+              value={newNote}
+              onChangeText={setNewNote}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <TouchableOpacity
+              style={[styles.noteSaveBtn, { backgroundColor: colors.primary, opacity: (newNote.trim() && !savingNote) ? 1 : 0.5 }]}
+              onPress={handleSaveNote}
+              disabled={!newNote.trim() || savingNote}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.noteSaveBtnText}>{savingNote ? 'Guardando...' : 'Guardar nota'}</Text>
+            </TouchableOpacity>
+
+            {notes.length === 0 ? (
+              <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 16 }]}>
+                Todavia no hay notas para este paciente.
+              </Text>
+            ) : (
+              notes.map((n) => (
+                <View key={n.id} style={styles.noteItem}>
+                  <View style={styles.noteItemHeader}>
+                    <Text style={[styles.noteDate, { color: colors.primary }]}>
+                      {new Date(n.session_date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Text>
+                    <TouchableOpacity onPress={() => handleDeleteNote(n.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={[styles.noteDelete, { color: colors.textSecondary }]}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={[styles.noteBody, { color: colors.text }]}>{n.body}</Text>
+                </View>
+              ))
             )}
           </View>
         )}
@@ -668,7 +744,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabPillText: {
-    fontSize: 14,
+    fontSize: 12.5,
     fontFamily: 'Outfit_600SemiBold',
   },
 
@@ -767,6 +843,60 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_400Regular',
     textAlign: 'center',
     paddingVertical: 20,
+  },
+
+  // Notas de sesión
+  notesHint: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    fontFamily: 'Outfit_400Regular',
+    minHeight: 100,
+    backgroundColor: '#FAFAFC',
+  },
+  noteSaveBtn: {
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  noteSaveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  noteItem: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F2F0F7',
+  },
+  noteItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  noteDate: {
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+    textTransform: 'capitalize',
+  },
+  noteDelete: {
+    fontSize: 22,
+    fontFamily: 'Outfit_400Regular',
+  },
+  noteBody: {
+    fontSize: 15,
+    fontFamily: 'Outfit_400Regular',
+    lineHeight: 22,
   },
 
   // History

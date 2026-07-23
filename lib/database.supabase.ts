@@ -309,3 +309,24 @@ export async function deleteIncome(id: string) {
   const { error } = await supabase.from('session_income').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// ── Notas de sesión (privadas del psicólogo) ──
+export async function createSessionNote(
+  id: string, psychId: string, patientId: string, body: string, sessionDate: string
+) {
+  const { error } = await supabase.from('session_notes').insert({
+    id, psychologist_id: psychId, patient_id: patientId, body, session_date: sessionDate,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getSessionNotes(patientId: string) {
+  const { data, error } = await supabase.from('session_notes')
+    .select('*').eq('patient_id', patientId).order('session_date', { ascending: false });
+  return must(data, error);
+}
+
+export async function deleteSessionNote(id: string) {
+  const { error } = await supabase.from('session_notes').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
