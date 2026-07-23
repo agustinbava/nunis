@@ -18,6 +18,7 @@ interface User {
   personality: string;
   share_code: string;
   public_key: string;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {

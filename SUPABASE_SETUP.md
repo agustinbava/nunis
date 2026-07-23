@@ -110,6 +110,13 @@ Para que el paciente haga consultas puntuales y el psicólogo responda (botón
 "Consultar entre sesiones" en el perfil del paciente, "Consultas" en el dashboard):
 - En el **SQL Editor**, corré [`supabase/consultations.sql`](supabase/consultations.sql) (additivo, tabla `consultations` con RLS).
 
+## 5h. Foto de perfil (avatares)
+
+Para que cada usuario (paciente y psicólogo) suba su foto de perfil:
+- En el **SQL Editor**, corré [`supabase/avatars.sql`](supabase/avatars.sql). Crea la columna
+  `avatar_url` en `profiles`, el bucket de Storage **`avatars`** (público) y las policies
+  para que cada uno suba solo su propia foto.
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

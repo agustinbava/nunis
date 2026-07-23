@@ -12,6 +12,8 @@ import BroadcastModal from '../../components/BroadcastModal';
 import IncomeModal from '../../components/IncomeModal';
 import AgendaModal from '../../components/AgendaModal';
 import PsychConsultationsModal from '../../components/PsychConsultationsModal';
+import Avatar from '../../components/Avatar';
+import { pickAndUploadAvatar } from '../../lib/avatar';
 
 const AVATAR_COLORS = [
   '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
@@ -67,7 +69,7 @@ async function copyToClipboard(text: string) {
 
 export default function PsychDashboardScreen() {
   const { colors } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const router = useRouter();
   const [patients, setPatients] = useState<any[]>([]);
   const [patientData, setPatientData] = useState<{ [key: string]: any }>({});
@@ -77,6 +79,19 @@ export default function PsychDashboardScreen() {
   const [incomeVisible, setIncomeVisible] = useState(false);
   const [agendaVisible, setAgendaVisible] = useState(false);
   const [consultVisible, setConsultVisible] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  const handleAvatarPress = async () => {
+    if (!user || avatarLoading) return;
+    setAvatarLoading(true);
+    try {
+      const url = await pickAndUploadAvatar(user.id);
+      if (url) await refreshUser();
+    } catch (e: any) {
+      Alert.alert('No se pudo subir la foto', e?.message ?? 'Intentá de nuevo.');
+    }
+    setAvatarLoading(false);
+  };
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -173,6 +188,7 @@ export default function PsychDashboardScreen() {
               <Text style={styles.badgeText}>Profesional</Text>
             </View>
           </View>
+          <Avatar url={user?.avatar_url} name={user?.name} size={44} onPress={handleAvatarPress} editable loading={avatarLoading} />
         </View>
 
         {/* Linking Code Card */}
@@ -294,8 +310,6 @@ export default function PsychDashboardScreen() {
           filteredPatients.map((p) => {
             const data = patientData[p.patient_id] || {};
             const status = getPatientStatus(data);
-            const initial = (p.name || '?')[0].toUpperCase();
-            const avatarBg = getAvatarColor(p.name || '');
 
             return (
               <TouchableOpacity
@@ -307,9 +321,7 @@ export default function PsychDashboardScreen() {
                 <View style={styles.patientRow}>
                   {/* Avatar + Name + Status */}
                   <View style={styles.patientInfo}>
-                    <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
-                      <Text style={styles.avatarLetter}>{initial}</Text>
-                    </View>
+                    <Avatar url={p.avatar_url} name={p.name} size={44} />
                     <View style={styles.patientNameBlock}>
                       <Text style={[styles.patientName, { color: colors.text }]}>{p.name}</Text>
                       <View style={[styles.statusBadge, { backgroundColor: status.color + '18' }]}>

@@ -5,6 +5,8 @@ import {
 import AppContainer from '../../components/AppContainer';
 import PatientAgendaModal from '../../components/PatientAgendaModal';
 import ConsultationModal from '../../components/ConsultationModal';
+import Avatar from '../../components/Avatar';
+import { pickAndUploadAvatar } from '../../lib/avatar';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
@@ -29,6 +31,19 @@ export default function ProfileScreen() {
   const [psychLink, setPsychLink] = useState<any>(null);
   const [agendaVisible, setAgendaVisible] = useState(false);
   const [consultVisible, setConsultVisible] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  const handleAvatarPress = async () => {
+    if (!user || avatarLoading) return;
+    setAvatarLoading(true);
+    try {
+      const url = await pickAndUploadAvatar(user.id);
+      if (url) await refreshUser();
+    } catch (e: any) {
+      Alert.alert('No se pudo subir la foto', e?.message ?? 'Intentá de nuevo.');
+    }
+    setAvatarLoading(false);
+  };
   const [psychCode, setPsychCode] = useState('');
   const [linkError, setLinkError] = useState('');
   const [linkSuccess, setLinkSuccess] = useState('');
@@ -107,6 +122,9 @@ export default function ProfileScreen() {
     <AppContainer>
         {/* User info - centered */}
         <View style={styles.userSection}>
+          <View style={{ marginBottom: 14 }}>
+            <Avatar url={user?.avatar_url} name={user?.name} size={92} onPress={handleAvatarPress} editable loading={avatarLoading} />
+          </View>
           <Text style={[styles.userName, { color: colors.text }]}>{user?.name}</Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
           <View style={[styles.planBadge, { backgroundColor: user?.role === 'psychologist' ? '#E8F5E9' : colors.accent }]}>

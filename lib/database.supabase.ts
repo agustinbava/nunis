@@ -150,10 +150,12 @@ export async function linkPatientToPsych(id: string, psychId: string, patientId:
 
 export async function getPsychPatients(psychId: string) {
   const { data, error } = await supabase.from('psych_patients')
-    .select('*, patient:profiles!patient_id(name, email)')
+    .select('*, patient:profiles!patient_id(name, email, avatar_url)')
     .eq('psychologist_id', psychId).eq('status', 'active');
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r: any) => ({ ...r, name: r.patient?.name ?? '', email: r.patient?.email ?? '' }));
+  return (data ?? []).map((r: any) => ({
+    ...r, name: r.patient?.name ?? '', email: r.patient?.email ?? '', avatar_url: r.patient?.avatar_url ?? null,
+  }));
 }
 
 export async function getPatientPsych(patientId: string) {
