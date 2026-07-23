@@ -12,10 +12,11 @@ import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import {
   getMoodEntries, getAllMoodEntries, getCorrelationData, getPatientTasks, completeTask,
-  getProfessionals, getPatientMessages, markMessageRead, getPatientPsych,
+  getProfessionals, getPatientMessages, markMessageRead, getPatientPsych, getJournalEntries,
 } from '../../lib/database';
 import { moodScoreToColor, moodScoreToEmoji } from '../../constants/themes';
 import { getEmotionLabel } from '../../constants/emotions';
+import { computeStreak, computeAchievements, Achievement } from '../../lib/gamification';
 
 function todayStr() {
   const d = new Date();
@@ -70,6 +71,8 @@ export default function HomeScreen() {
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifMessages, setNotifMessages] = useState<any[]>([]);
   const [notifCenterVisible, setNotifCenterVisible] = useState(false);
+  const [streak, setStreak] = useState({ current: 0, best: 0 });
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const notifShownRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -127,6 +130,14 @@ export default function HomeScreen() {
     // Get all entries for the mini history
     const allEntries = await getAllMoodEntries(user.id);
     setRecentEntries(allEntries);
+
+    // Racha + logros (computados de los datos)
+    const dates = allEntries.map((e: any) => e.date);
+    const st = computeStreak(dates);
+    setStreak(st);
+    let journalCount = 0;
+    try { journalCount = (await getJournalEntries(user.id, 100)).length; } catch {}
+    setAchievements(computeAchievements(allEntries.length, st.best, journalCount));
 
     // Get correlation data
     const corr = await getCorrelationData(user.id);
@@ -262,6 +273,34 @@ export default function HomeScreen() {
         </TouchableOpacity>
       ) : null}
 
+      {/* Racha */}
+      {loaded && (
+        <View style={[styles.streakCard, cardShadow]}>
+          <View style={styles.streakIcon}>
+            <Ionicons name="flame" size={26} color="#FF7A45" />
+          </View>
+          <View style={{ flex: 1 }}>
+            {streak.current > 0 ? (
+              <>
+                <Text style={[styles.streakNum, { color: colors.text }]}>
+                  {streak.current} <Text style={styles.streakUnit}>día{streak.current !== 1 ? 's' : ''} seguidos</Text>
+                </Text>
+                <Text style={[styles.streakSub, { color: colors.textSecondary }]}>
+                  {todayEntry ? `¡Seguí así! Tu mejor racha: ${streak.best}` : 'Registrá hoy para no cortarla'}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.streakNum, { color: colors.text }]}>Empezá tu racha</Text>
+                <Text style={[styles.streakSub, { color: colors.textSecondary }]}>
+                  Registrá tu ánimo hoy y arrancá a sumar días
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* Tareas de tu profesional */}
       {loaded && tasks.filter((t) => t.status === 'pending').length > 0 && (
         <>
@@ -319,6 +358,30 @@ export default function HomeScreen() {
             })}
           </View>
         </View>
+      )}
+
+      {/* Logros */}
+      {loaded && achievements.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Logros</Text>
+            <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+              {achievements.filter((a) => a.unlocked).length} de {achievements.length} desbloqueados
+            </Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.logrosRow}>
+            {achievements.map((a) => (
+              <View key={a.id} style={[styles.logroCard, cardShadow, !a.unlocked && { opacity: 0.6 }]}>
+                <View style={[styles.logroIcon, { backgroundColor: a.unlocked ? colors.accent : '#EFEDF6' }]}>
+                  <Ionicons name={a.icon as any} size={22} color={a.unlocked ? colors.primary : '#B8B4C8'} />
+                </View>
+                <Text style={[styles.logroTitle, { color: a.unlocked ? colors.text : colors.textSecondary }]} numberOfLines={1}>{a.title}</Text>
+                <Text style={[styles.logroDesc, { color: colors.textSecondary }]} numberOfLines={2}>{a.desc}</Text>
+                {!a.unlocked && <Text style={[styles.logroProgress, { color: colors.primary }]}>{a.progress}/{a.goal}</Text>}
+              </View>
+            ))}
+          </ScrollView>
+        </>
       )}
 
       {/* Quick insight card */}
@@ -481,6 +544,74 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 24,
     textTransform: 'capitalize',
+  },
+
+  // Racha
+  streakCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  streakIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF1EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  streakNum: {
+    fontSize: 22,
+    fontFamily: 'PlayfairDisplay_700Bold',
+  },
+  streakUnit: {
+    fontSize: 15,
+    fontFamily: 'Outfit_500Medium',
+  },
+  streakSub: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+    marginTop: 2,
+  },
+
+  // Logros
+  logrosRow: {
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 20,
+  },
+  logroCard: {
+    width: 130,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+  },
+  logroIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  logroTitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  logroDesc: {
+    fontSize: 12,
+    fontFamily: 'Outfit_400Regular',
+    marginTop: 2,
+    minHeight: 30,
+  },
+  logroProgress: {
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
+    marginTop: 6,
   },
 
   // Today's summary card
