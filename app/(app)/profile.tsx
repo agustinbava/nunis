@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform,
 } from 'react-native';
 import AppContainer from '../../components/AppContainer';
+import PatientAgendaModal from '../../components/PatientAgendaModal';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [activities, setActivities] = useState<any[]>([]);
   const [psychLink, setPsychLink] = useState<any>(null);
+  const [agendaVisible, setAgendaVisible] = useState(false);
   const [psychCode, setPsychCode] = useState('');
   const [linkError, setLinkError] = useState('');
   const [linkSuccess, setLinkSuccess] = useState('');
@@ -210,6 +212,13 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <TouchableOpacity
+                style={[styles.agendaBtn, { backgroundColor: colors.primary }]}
+                onPress={() => setAgendaVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.agendaBtnText}>Ver turnos y reservar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.unlinkBtn, cardShadow]}
                 onPress={handleUnlink}
                 activeOpacity={0.7}
@@ -277,6 +286,12 @@ export default function ProfileScreen() {
         >
           <Text style={styles.logoutText}>Cerrar sesion</Text>
         </TouchableOpacity>
+
+        <PatientAgendaModal
+          visible={agendaVisible}
+          patientId={user?.id || ''}
+          onClose={() => setAgendaVisible(false)}
+        />
     </AppContainer>
   );
 }
@@ -450,6 +465,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Outfit_400Regular',
     marginTop: 2,
+  },
+  agendaBtn: {
+    borderRadius: 16,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  agendaBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
   },
   unlinkBtn: {
     backgroundColor: '#FFFFFF',

@@ -98,6 +98,12 @@ cd ~/Documents/nunis && node scripts/seed-income.mjs
 Para las notas clínicas privadas por paciente (pestaña "Notas" en la vista de paciente):
 - En el **SQL Editor**, corré [`supabase/notes.sql`](supabase/notes.sql) (additivo, tabla `session_notes` con RLS: solo el psicólogo dueño la ve).
 
+## 5f. Agenda / turnos
+
+Para que el psicólogo publique horarios y el paciente reserve (botón "Agenda" en el
+dashboard, "Ver turnos" en el perfil del paciente):
+- En el **SQL Editor**, corré [`supabase/agenda.sql`](supabase/agenda.sql) (additivo, tabla `appointments` con RLS del flujo de reserva).
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

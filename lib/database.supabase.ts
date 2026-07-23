@@ -330,3 +330,48 @@ export async function deleteSessionNote(id: string) {
   const { error } = await supabase.from('session_notes').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// ── Agenda / turnos ──
+export async function createSlot(id: string, psychId: string, slotDate: string, slotTime: string) {
+  const { error } = await supabase.from('appointments').insert({
+    id, psychologist_id: psychId, slot_date: slotDate, slot_time: slotTime, status: 'available',
+  });
+  if (error) throw new Error(error.message);
+}
+
+// Slots del psicólogo (disponibles + reservados, con nombre del paciente)
+export async function getPsychSlots(psychId: string) {
+  const { data, error } = await supabase.from('appointments')
+    .select('*, patient:profiles!patient_id(name)')
+    .eq('psychologist_id', psychId)
+    .order('slot_date', { ascending: true }).order('slot_time', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({ ...r, patient_name: r.patient?.name ?? null }));
+}
+
+// Lo que ve el paciente: disponibles de su psicólogo + sus reservas (RLS filtra)
+export async function getPatientAppointments(patientId: string) {
+  const { data, error } = await supabase.from('appointments')
+    .select('*, psych:profiles!psychologist_id(name)')
+    .order('slot_date', { ascending: true }).order('slot_time', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r: any) => ({ ...r, psych_name: r.psych?.name ?? 'Tu profesional' }));
+}
+
+export async function bookSlot(id: string, patientId: string) {
+  const { error } = await supabase.from('appointments')
+    .update({ patient_id: patientId, status: 'booked' })
+    .eq('id', id).eq('status', 'available');
+  if (error) throw new Error(error.message);
+}
+
+export async function cancelSlot(id: string) {
+  const { error } = await supabase.from('appointments')
+    .update({ patient_id: null, status: 'available' }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSlot(id: string) {
+  const { error } = await supabase.from('appointments').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}

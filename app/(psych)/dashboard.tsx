@@ -10,6 +10,7 @@ import { getPsychPatients, getMoodEntries } from '../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../constants/themes';
 import BroadcastModal from '../../components/BroadcastModal';
 import IncomeModal from '../../components/IncomeModal';
+import AgendaModal from '../../components/AgendaModal';
 
 const AVATAR_COLORS = [
   '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
@@ -73,6 +74,7 @@ export default function PsychDashboardScreen() {
   const [copied, setCopied] = useState(false);
   const [broadcastVisible, setBroadcastVisible] = useState(false);
   const [incomeVisible, setIncomeVisible] = useState(false);
+  const [agendaVisible, setAgendaVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -194,7 +196,14 @@ export default function PsychDashboardScreen() {
             activeOpacity={0.85}
             disabled={patients.length === 0}
           >
-            <Text style={styles.actionBtnText}>Enviar mensaje</Text>
+            <Text style={styles.actionBtnText}>Mensaje</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
+            onPress={() => setAgendaVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Agenda</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
@@ -379,6 +388,12 @@ export default function PsychDashboardScreen() {
         psychId={user?.id || ''}
         patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
         onClose={() => setIncomeVisible(false)}
+      />
+
+      <AgendaModal
+        visible={agendaVisible}
+        psychId={user?.id || ''}
+        onClose={() => setAgendaVisible(false)}
       />
     </SafeAreaView>
   );
