@@ -135,12 +135,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    // Limpiar el estado primero para que la UI cierre sesión al instante,
-    // aunque el signOut de red tarde o falle.
+    // Limpiar el estado primero para que la UI cierre sesión al instante.
     setUser(null);
     setEncryptionKey(null);
     try {
-      await supabase.auth.signOut();
+      // scope 'local': limpia la sesión de este dispositivo SIN llamada de red
+      // al servidor de auth (evita que el logout quede colgado si Supabase
+      // está lento). El refresh token expira solo.
+      await supabase.auth.signOut({ scope: 'local' });
     } catch {
       // ignorar: la sesión local ya se limpió
     }
