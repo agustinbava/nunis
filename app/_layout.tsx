@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../lib/auth-context';
@@ -19,17 +19,28 @@ export default function RootLayout() {
     Outfit_600SemiBold,
   });
 
+  // Fallback: no bloquear la app indefinidamente si useFonts no resuelve
+  // (pasa en algunos builds web de producción). Renderizamos igual tras 2s;
+  // las fuentes aparecen cuando terminan de cargar.
+  const [fallbackReady, setFallbackReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setFallbackReady(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const ready = fontsLoaded || fallbackReady;
+
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
-      await SplashScreen.hideAsync();
+    if (ready) {
+      await SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [ready]);
 
   useEffect(() => {
     onLayoutRootView();
   }, [onLayoutRootView]);
 
-  if (!fontsLoaded) {
+  if (!ready) {
     return null;
   }
 

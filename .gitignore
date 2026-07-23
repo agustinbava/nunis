@@ -17,3 +17,5 @@ public/landing/mobile-screenshot.png
 
 expo-env.d.ts
 # @end expo-cli
+.vercel
+.env*

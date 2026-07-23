@@ -3,6 +3,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/((?!_expo/|assets/|landing/|favicon).*)", "destination": "/index.html" }
   ]
 }
