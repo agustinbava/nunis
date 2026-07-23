@@ -17,6 +17,7 @@ import {
 import { moodScoreToColor, moodScoreToEmoji } from '../../constants/themes';
 import { getEmotionLabel } from '../../constants/emotions';
 import { computeStreak, computeAchievements, Achievement } from '../../lib/gamification';
+import { TEAL } from '../../constants/palette';
 
 function todayStr() {
   const d = new Date();
@@ -232,8 +233,8 @@ export default function HomeScreen() {
       {todayEntry && loaded ? (
         <View style={[styles.todayCard, cardShadow]}>
           <View style={styles.todayCardHeader}>
-            <View style={[styles.todayCheckCircle, { backgroundColor: '#E8F5E9' }]}>
-              <Text style={styles.todayCheckText}>{'\u2713'}</Text>
+            <View style={[styles.todayCheckCircle, { backgroundColor: TEAL + '1F' }]}>
+              <Ionicons name="checkmark" size={17} color={TEAL} />
             </View>
             <Text style={[styles.todayRegistered, { color: colors.text }]}>Ya registraste hoy</Text>
           </View>
@@ -328,7 +329,7 @@ export default function HomeScreen() {
             <View style={styles.completedTasksSection}>
               {tasks.filter((t) => t.status === 'completed').map((task) => (
                 <View key={task.id} style={[styles.taskCardCompleted, cardShadow]}>
-                  <Text style={[styles.taskCheckmark, { color: '#27AE60' }]}>{'\u2713'}</Text>
+                  <Ionicons name="checkmark-circle" size={18} color={TEAL} style={styles.taskCheckmark} />
                   <Text style={[styles.taskDescriptionCompleted, { color: colors.textSecondary }]}>
                     {task.description}
                   </Text>
@@ -633,11 +634,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  todayCheckText: {
-    fontSize: 16,
-    color: '#27AE60',
-    fontFamily: 'Outfit_600SemiBold',
   },
   todayRegistered: {
     fontSize: 16,
@@ -945,8 +941,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   taskCheckmark: {
-    fontSize: 18,
-    fontFamily: 'Outfit_600SemiBold',
+    marginRight: 2,
   },
   taskDescriptionCompleted: {
     fontSize: 14,

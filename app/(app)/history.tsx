@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppContainer from '../../components/AppContainer';
+import { TEAL } from '../../constants/palette';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import { getAllMoodEntries, getEntryActivities } from '../../lib/database';
@@ -147,9 +149,10 @@ export default function HistoryScreen() {
                   {entry.notes_encrypted && (
                     <View style={[styles.notesBox, { backgroundColor: colors.bg }]}>
                       <View style={styles.notesLabelRow}>
-                        <View style={[styles.encryptedBadge, { backgroundColor: '#E8F5E9' }]}>
-                          <Text style={[styles.encryptedBadgeText, { color: colors.success }]}>
-                            🔒 Nota encriptada
+                        <View style={[styles.encryptedBadge, { backgroundColor: TEAL + '1F' }]}>
+                          <Ionicons name="lock-closed" size={11} color={TEAL} />
+                          <Text style={[styles.encryptedBadgeText, { color: TEAL }]}>
+                            Nota encriptada
                           </Text>
                         </View>
                       </View>
@@ -263,8 +266,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   encryptedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 9999,
   },
   encryptedBadgeText: {

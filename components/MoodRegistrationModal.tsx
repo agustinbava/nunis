@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import EmotionSelector from './EmotionSelector';
-import { GREY_INK } from '../constants/palette';
+import { GREY_INK, TEAL, CORAL } from '../constants/palette';
 import { useTheme } from '../lib/theme-context';
 import { useAuth } from '../lib/auth-context';
 import { getActivities, createMoodEntry, createActivity, getMoodEntries, getPatientPsych } from '../lib/database';
@@ -151,7 +151,7 @@ export default function MoodRegistrationModal({ visible, onClose, onSaved }: Moo
           {showSuccess ? (
             <Animated.View style={[styles.successOverlay, { opacity: successOpacity }]}>
               <View style={styles.successCircle}>
-                <Text style={styles.successCheck}>{'\u2713'}</Text>
+                <Ionicons name="checkmark" size={40} color={TEAL} />
               </View>
               <Text style={styles.successTitle}>Dia registrado</Text>
               <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>Tu bienestar importa</Text>
@@ -240,8 +240,9 @@ export default function MoodRegistrationModal({ visible, onClose, onSaved }: Moo
               <View style={[styles.card, cardShadow, { marginTop: 20 }]}>
                 <View style={styles.notesTitleRow}>
                   <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Notas del dia</Text>
-                  <View style={[styles.encryptedBadge, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.encryptedText, { color: colors.success }]}>Encriptado</Text>
+                  <View style={[styles.encryptedBadge, { backgroundColor: TEAL + '1F' }]}>
+                    <Ionicons name="lock-closed" size={11} color={TEAL} />
+                    <Text style={[styles.encryptedText, { color: TEAL }]}>Encriptado</Text>
                   </View>
                 </View>
 
@@ -280,7 +281,7 @@ export default function MoodRegistrationModal({ visible, onClose, onSaved }: Moo
                   <View>
                     {!notes ? (
                       <TouchableOpacity
-                        style={[styles.voiceBtn, isRecording && { backgroundColor: '#FFD4D4', borderColor: '#E74C3C' }]}
+                        style={[styles.voiceBtn, isRecording && { backgroundColor: CORAL + '22', borderColor: CORAL }]}
                         onPress={() => {
                           if (isRecording) {
                             setIsRecording(false);
@@ -291,8 +292,8 @@ export default function MoodRegistrationModal({ visible, onClose, onSaved }: Moo
                         }}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.voiceIcon}>{isRecording ? '\u23F9' : '\uD83C\uDF99'}</Text>
-                        <Text style={[styles.voiceBtnText, { color: isRecording ? '#E74C3C' : colors.textSecondary }]}>
+                        <Ionicons name={isRecording ? 'stop-circle' : 'mic'} size={26} color={isRecording ? CORAL : GREY_INK} />
+                        <Text style={[styles.voiceBtnText, { color: isRecording ? CORAL : colors.textSecondary }]}>
                           {isRecording ? 'Grabando... toca para detener' : 'Toca para grabar tu nota de voz'}
                         </Text>
                       </TouchableOpacity>
@@ -426,15 +427,12 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: TEAL + '1F',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
-  successCheck: {
-    fontSize: 40,
-    color: '#27AE60',
-  },
+
   successTitle: {
     fontSize: 24,
     fontFamily: 'PlayfairDisplay_700Bold',
@@ -517,8 +515,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   encryptedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 9999,
   },
   encryptedText: {
@@ -560,7 +561,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  voiceIcon: { fontSize: 32 },
   voiceBtnText: {
     fontSize: 14,
     fontFamily: 'Outfit_500Medium',
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   errorMsg: {
     fontSize: 13,
     fontFamily: 'Outfit_500Medium',
-    color: '#E74C3C',
+    color: CORAL,
     textAlign: 'center',
     marginTop: 12,
   },

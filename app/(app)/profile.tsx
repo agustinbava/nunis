@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppContainer from '../../components/AppContainer';
+import { TEAL, CORAL } from '../../constants/palette';
 import PatientAgendaModal from '../../components/PatientAgendaModal';
 import ConsultationModal from '../../components/ConsultationModal';
 import Avatar from '../../components/Avatar';
@@ -127,8 +129,8 @@ export default function ProfileScreen() {
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>{user?.name}</Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
-          <View style={[styles.planBadge, { backgroundColor: user?.role === 'psychologist' ? '#E8F5E9' : colors.accent }]}>
-            <Text style={[styles.planBadgeText, { color: user?.role === 'psychologist' ? '#27AE60' : colors.primary }]}>
+          <View style={[styles.planBadge, { backgroundColor: user?.role === 'psychologist' ? TEAL + '1F' : colors.accent }]}>
+            <Text style={[styles.planBadgeText, { color: user?.role === 'psychologist' ? TEAL : colors.primary }]}>
               {user?.role === 'psychologist' ? 'Profesional' : 'Miembro'}
             </Text>
           </View>
@@ -594,6 +596,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontFamily: 'Outfit_600SemiBold',
-    color: '#E74C3C',
+    color: CORAL,
   },
 });

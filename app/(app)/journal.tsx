@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppContainer from '../../components/AppContainer';
+import { TEAL } from '../../constants/palette';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import { createJournalEntry, getJournalEntries } from '../../lib/database';
@@ -159,9 +161,10 @@ export default function JournalScreen() {
                       {selectedPrompt.categoryEmoji} {selectedPrompt.question}
                     </Text>
                   </View>
-                  <View style={[styles.encryptedBadge, { backgroundColor: '#E8F5E9' }]}>
-                    <Text style={[styles.encryptedText, { color: colors.success }]}>
-                      🔒 Tu respuesta se guarda encriptada
+                  <View style={[styles.encryptedBadge, { backgroundColor: TEAL + '1F' }]}>
+                    <Ionicons name="lock-closed" size={12} color={TEAL} />
+                    <Text style={[styles.encryptedText, { color: TEAL }]}>
+                      Tu respuesta se guarda encriptada
                     </Text>
                   </View>
                   <TextInput
@@ -354,9 +357,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
   },
   encryptedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 9999,
     marginBottom: 12,
   },
