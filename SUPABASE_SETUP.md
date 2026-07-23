@@ -67,6 +67,23 @@ supabase functions deploy pre-session-summary
 Sin este paso, el botón muestra un error pidiéndote que despliegues la función.
 El resto de la app funciona igual.
 
+## 5c. Mensajería + directorio de profesionales
+
+Para habilitar los mensajes psicólogo→paciente (con popup al loguearse y broadcast/multiselect)
+y el directorio de profesionales con perfil:
+
+1. En el **SQL Editor** de Supabase, pegá y corré [`supabase/features.sql`](supabase/features.sql).
+   Es **additivo** (no borra nada): crea las tablas `messages` y `professionals` con sus RLS
+   y seedea 5 profesionales para el directorio.
+2. (Opcional) Para ver datos de demo de mensajes al instante:
+```bash
+cd ~/Documents/nunis && node scripts/seed-messages.mjs
+```
+Esto hace que Marcela mande un mensaje de bienvenida a Agustín y una recomendación de libro
+(broadcast) a todos sus pacientes. Es idempotente (no duplica si ya hay mensajes).
+
+Sin el paso 1, la app funciona igual pero la sección de mensajes y el directorio salen vacíos.
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

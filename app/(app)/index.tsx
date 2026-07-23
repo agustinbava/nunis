@@ -1,18 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
 } from 'react-native';
 import AppContainer from '../../components/AppContainer';
 import MoodRegistrationModal from '../../components/MoodRegistrationModal';
+import ProfessionalModal from '../../components/ProfessionalModal';
+import NotificationPopup from '../../components/NotificationPopup';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
-import { getMoodEntries, getAllMoodEntries, getCorrelationData, getPatientTasks, completeTask } from '../../lib/database';
+import {
+  getMoodEntries, getAllMoodEntries, getCorrelationData, getPatientTasks, completeTask,
+  getProfessionals, getPatientMessages, markMessageRead,
+} from '../../lib/database';
 import { moodScoreToColor, moodScoreToEmoji } from '../../constants/themes';
 import { getEmotionLabel } from '../../constants/emotions';
 
 function todayStr() {
   const d = new Date();
   return d.toISOString().split('T')[0];
+}
+
+function formatMsgDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) +
+      ' · ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
 }
 
 function getDayLabel(dateStr: string): string {
@@ -32,12 +45,6 @@ function getLast7Days(): string[] {
   return days;
 }
 
-const MOCK_PSYCHOLOGISTS = [
-  { name: 'Lic. Valentina Rossi', specialty: 'Terapia cognitivo-conductual', rating: 4.9 },
-  { name: 'Lic. Matias Fernandez', specialty: 'Mindfulness y bienestar', rating: 4.8 },
-  { name: 'Lic. Camila Lopez', specialty: 'Psicologia positiva', rating: 4.7 },
-];
-
 const WELLNESS_TIPS = [
   'Meditar 10 minutos mejora tu concentracion',
   'Caminar al aire libre reduce el estres',
@@ -53,7 +60,35 @@ export default function HomeScreen() {
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [correlations, setCorrelations] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedProf, setSelectedProf] = useState<any>(null);
+  const [profModalVisible, setProfModalVisible] = useState(false);
+  const [notifVisible, setNotifVisible] = useState(false);
+  const [notifMessages, setNotifMessages] = useState<any[]>([]);
+  const notifShownRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
+
+  const openProfessional = (p: any) => {
+    setSelectedProf(p);
+    setProfModalVisible(true);
+  };
+
+  const dismissNotifPopup = async () => {
+    setNotifVisible(false);
+    const ids = notifMessages.map((m) => m.id);
+    setMessages((prev) => prev.map((m) => ids.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m));
+    for (const id of ids) {
+      try { await markMessageRead(id); } catch {}
+    }
+  };
+
+  const openMessage = async (m: any) => {
+    if (!m.read_at) {
+      setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, read_at: new Date().toISOString() } : x));
+      try { await markMessageRead(m.id); } catch {}
+    }
+  };
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -86,10 +121,31 @@ export default function HomeScreen() {
     const patTasks = await getPatientTasks(user.id);
     setTasks(patTasks);
 
+    // Mensajes del profesional
+    let willShowPopup = false;
+    try {
+      const msgs = await getPatientMessages(user.id);
+      setMessages(msgs);
+      // Popup flotante al entrar si hay mensajes sin leer (una vez por sesión)
+      const unread = msgs.filter((m: any) => !m.read_at);
+      if (unread.length > 0 && !notifShownRef.current) {
+        notifShownRef.current = true;
+        willShowPopup = true;
+        setNotifMessages(unread);
+        setNotifVisible(true);
+      }
+    } catch { setMessages([]); }
+
+    // Directorio de profesionales
+    try {
+      const profs = await getProfessionals();
+      setProfessionals(profs);
+    } catch { setProfessionals([]); }
+
     setLoaded(true);
 
-    // If no entry today, auto-open modal
-    if (!today) {
+    // If no entry today, auto-open modal (salvo que aparezca el popup de mensajes)
+    if (!today && !willShowPopup) {
       setModalVisible(true);
     }
   }, [user]);
@@ -177,6 +233,31 @@ export default function HomeScreen() {
         </TouchableOpacity>
       ) : null}
 
+      {/* Mensajes de tu profesional */}
+      {loaded && messages.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Mensajes de tu profesional</Text>
+          </View>
+          {messages.map((m) => (
+            <TouchableOpacity
+              key={m.id}
+              style={[styles.messageCard, cardShadow, !m.read_at && { borderLeftWidth: 4, borderLeftColor: colors.primary }]}
+              activeOpacity={0.8}
+              onPress={() => openMessage(m)}
+            >
+              <View style={styles.messageHeader}>
+                <Text style={[styles.messageFrom, { color: colors.primary }]}>{m.psych_name}</Text>
+                {!m.read_at && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+                <View style={{ flex: 1 }} />
+                <Text style={[styles.messageTime, { color: colors.textSecondary }]}>{formatMsgDateTime(m.created_at)}</Text>
+              </View>
+              <Text style={[styles.messageBody, { color: colors.text }]}>{m.body}</Text>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
+
       {/* Tareas de tu profesional */}
       {loaded && tasks.filter((t) => t.status === 'pending').length > 0 && (
         <>
@@ -249,22 +330,27 @@ export default function HomeScreen() {
       )}
 
       {/* Recommended psychologists */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesionales recomendados</Text>
-      </View>
-      {MOCK_PSYCHOLOGISTS.map((psych, i) => (
-        <View key={i} style={[styles.psychCard, cardShadow]}>
+      {professionals.length > 0 && (
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesionales recomendados</Text>
+        </View>
+      )}
+      {professionals.map((psych) => (
+        <TouchableOpacity
+          key={psych.id}
+          style={[styles.psychCard, cardShadow]}
+          activeOpacity={0.85}
+          onPress={() => openProfessional(psych)}
+        >
           <View style={styles.psychInfo}>
             <Text style={[styles.psychName, { color: colors.text }]}>{psych.name}</Text>
             <Text style={[styles.psychSpecialty, { color: colors.textSecondary }]}>{psych.specialty}</Text>
             <Text style={[styles.psychRating, { color: colors.text }]}>
-              {'\u2B50'} {psych.rating}
+              {'\u2B50'} {psych.rating}  \u00B7  {psych.accepting ? 'Disponible' : 'Sin cupos'}
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={[styles.psychLink, { color: colors.primary }]}>Ver perfil</Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={[styles.psychLink, { color: colors.primary }]}>Ver perfil</Text>
+        </TouchableOpacity>
       ))}
 
       {/* Wellness tips */}
@@ -288,6 +374,20 @@ export default function HomeScreen() {
         visible={modalVisible}
         onClose={handleModalClose}
         onSaved={handleModalSaved}
+      />
+
+      {/* Professional profile Modal */}
+      <ProfessionalModal
+        professional={selectedProf}
+        visible={profModalVisible}
+        onClose={() => setProfModalVisible(false)}
+      />
+
+      {/* Popup de notificaciones al entrar */}
+      <NotificationPopup
+        visible={notifVisible}
+        messages={notifMessages}
+        onClose={dismissNotifPopup}
       />
     </AppContainer>
   );
@@ -510,6 +610,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Outfit_500Medium',
     lineHeight: 20,
+  },
+
+  // Messages
+  messageCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 10,
+  },
+  messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  messageFrom: {
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  messageTime: {
+    fontSize: 12,
+    fontFamily: 'Outfit_400Regular',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  messageBody: {
+    fontSize: 15,
+    fontFamily: 'Outfit_400Regular',
+    lineHeight: 22,
   },
 
   // Tasks

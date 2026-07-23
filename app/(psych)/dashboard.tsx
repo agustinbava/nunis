@@ -8,6 +8,7 @@ import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import { getPsychPatients, getMoodEntries } from '../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../constants/themes';
+import BroadcastModal from '../../components/BroadcastModal';
 
 const AVATAR_COLORS = [
   '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
@@ -69,6 +70,7 @@ export default function PsychDashboardScreen() {
   const [patientData, setPatientData] = useState<{ [key: string]: any }>({});
   const [filter, setFilter] = useState<'todos' | 'urgentes'>('todos');
   const [copied, setCopied] = useState(false);
+  const [broadcastVisible, setBroadcastVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -181,6 +183,16 @@ export default function PsychDashboardScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Enviar mensaje / broadcast */}
+        <TouchableOpacity
+          style={[styles.broadcastBtn, { backgroundColor: colors.primary }]}
+          onPress={() => setBroadcastVisible(true)}
+          activeOpacity={0.85}
+          disabled={patients.length === 0}
+        >
+          <Text style={styles.broadcastBtnText}>Enviar mensaje a pacientes</Text>
+        </TouchableOpacity>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -343,6 +355,13 @@ export default function PsychDashboardScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      <BroadcastModal
+        visible={broadcastVisible}
+        psychId={user?.id || ''}
+        patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
+        onClose={() => setBroadcastVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -639,6 +658,18 @@ const styles = StyleSheet.create({
   },
   alertItemText: {
     fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+
+  broadcastBtn: {
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  broadcastBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontFamily: 'Outfit_600SemiBold',
   },
 

@@ -234,3 +234,47 @@ export async function completeTask(taskId: string) {
   const { error } = await supabase.from('tasks').update({ status: 'completed' }).eq('id', taskId);
   if (error) throw new Error(error.message);
 }
+
+// ── Messages (psicólogo -> paciente, con broadcast) ──
+export async function sendMessage(psychId: string, patientIds: string[], body: string) {
+  const rows = patientIds.map((patient_id) => ({
+    id: genMsgId(), psychologist_id: psychId, patient_id, body,
+  }));
+  if (!rows.length) return;
+  const { error } = await supabase.from('messages').insert(rows);
+  if (error) throw new Error(error.message);
+}
+
+export async function getPatientMessages(patientId: string) {
+  const { data, error } = await supabase.from('messages')
+    .select('*, psych:profiles!psychologist_id(name)')
+    .eq('patient_id', patientId).order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((m: any) => ({ ...m, psych_name: m.psych?.name ?? 'Tu profesional' }));
+}
+
+export async function markMessageRead(messageId: string) {
+  const { error } = await supabase.from('messages')
+    .update({ read_at: new Date().toISOString() }).eq('id', messageId).is('read_at', null);
+  if (error) throw new Error(error.message);
+}
+
+function genMsgId(): string {
+  const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let r = 'msg_';
+  for (let i = 0; i < 16; i++) r += c[Math.floor(Math.random() * c.length)];
+  return r;
+}
+
+// ── Directorio de profesionales ──
+export async function getProfessionals() {
+  const { data, error } = await supabase.from('professionals').select('*')
+    .order('accepting', { ascending: false }).order('rating', { ascending: false });
+  return must(data, error);
+}
+
+export async function getProfessional(id: string) {
+  const { data, error } = await supabase.from('professionals').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
