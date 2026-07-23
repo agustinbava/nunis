@@ -17,13 +17,7 @@ import { supabase } from '../../../lib/supabase';
 import { generatePatientReport } from '../../../lib/report';
 import Avatar from '../../../components/Avatar';
 
-// Paleta cálida (coherente con el dashboard)
-const AMBER = '#E8A54B';
-const AMBER_BG = '#FBF1DF';
-const AMBER_INK = '#9A6A18';
-const CORAL = '#EC7C6A';
-const TEAL = '#35B79A';
-const GREY_INK = '#8B8794';
+import { AMBER_BG, AMBER_INK, CORAL, TEAL, GREY_INK } from '../../../constants/palette';
 
 function relativeDay(dateStr?: string) {
   if (!dateStr) return 'Sin registros';

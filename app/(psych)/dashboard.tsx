@@ -16,13 +16,7 @@ import PsychConsultationsModal from '../../components/PsychConsultationsModal';
 import Avatar from '../../components/Avatar';
 import { pickAndUploadAvatar } from '../../lib/avatar';
 
-// Paleta cálida del rediseño (coherente con el mockup aprobado)
-const AMBER = '#E8A54B';
-const AMBER_BG = '#FBF1DF';
-const AMBER_INK = '#9A6A18';
-const CORAL = '#EC7C6A';
-const GREY_BADGE_BG = '#EFEDF2';
-const GREY_INK = '#8B8794';
+import { AMBER, AMBER_BG, AMBER_INK, CORAL, GREY_BADGE_BG, GREY_INK } from '../../constants/palette';
 
 function firstName(name?: string | null) {
   return (name || '').trim().split(/\s+/)[0] || '';

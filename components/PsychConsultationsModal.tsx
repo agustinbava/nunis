@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Modal, ScrollView, TouchableOpacity, TextInput, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme-context';
 import { getPsychConsultations, answerConsultation } from '../lib/database';
-
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+import ModalSheet from './ModalSheet';
+import { AMBER, AMBER_BG, AMBER_INK, TEAL, GREY_INK } from '../constants/palette';
 
 function money(n: number) { return '$' + Math.round(n).toLocaleString('es-AR'); }
-function when(iso: string) { try { const d = new Date(iso); return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; } }
+function when(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
 
 interface Props { visible: boolean; psychId: string; onClose: () => void; }
 
@@ -40,98 +46,91 @@ export default function PsychConsultationsModal({ visible, psychId, onClose }: P
     setBusy(null);
   };
 
+  const subtitle = [
+    pending.length > 0 ? `${pending.length} sin responder` : 'Consultas asincrónicas de tus pacientes',
+    earned > 0 ? `${money(earned)} generados` : '',
+  ].filter(Boolean).join(' · ');
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <TouchableOpacity style={styles.backdropTouch} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { height: SCREEN_HEIGHT * 0.9 }]}>
-          <View style={styles.handleRow}>
-            <View style={styles.handle} />
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.closeBtnText}>X</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={[styles.title, { color: colors.text }]}>Consultas</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {pending.length > 0 ? `${pending.length} sin responder` : 'Consultas asincrónicas de tus pacientes'}
-              {earned > 0 ? ` · ${money(earned)} generados` : ''}
-            </Text>
-
-            {items.length === 0 ? (
-              <Text style={[styles.empty, { color: colors.textSecondary }]}>
-                Todavía no tenés consultas. Cuando un paciente te escriba una, aparece acá.
-              </Text>
-            ) : (
-              items.map((c) => (
-                <View key={c.id} style={[styles.item, c.status === 'pending' && { borderLeftWidth: 3, borderLeftColor: colors.primary }]}>
-                  <View style={styles.itemHead}>
-                    <Text style={[styles.who, { color: colors.text }]}>{c.patient_name}</Text>
-                    <Text style={[styles.price, { color: colors.primary }]}>{money(Number(c.price))}</Text>
-                  </View>
-                  <Text style={[styles.date, { color: colors.textSecondary }]}>{when(c.created_at)}</Text>
-                  <Text style={[styles.q, { color: colors.text }]}>{c.question}</Text>
-
-                  {c.status === 'answered' ? (
-                    <View style={[styles.answerBox, { backgroundColor: '#F3F1FB' }]}>
-                      <Text style={[styles.answerLbl, { color: colors.textSecondary }]}>Tu respuesta</Text>
-                      <Text style={[styles.answerBody, { color: colors.text }]}>{c.answer}</Text>
+    <ModalSheet visible={visible} onClose={onClose} title="Consultas" subtitle={subtitle} heightRatio={0.9}>
+      {items.length === 0 ? (
+        <Text style={[styles.empty, { color: colors.textSecondary }]}>
+          Todavía no tenés consultas. Cuando un paciente te escriba una, aparece acá.
+        </Text>
+      ) : (
+        items.map((c) => {
+          const isPending = c.status === 'pending';
+          return (
+            <View key={c.id} style={[styles.item, isPending && { borderLeftWidth: 3, borderLeftColor: AMBER }]}>
+              <View style={styles.itemHead}>
+                <Text style={[styles.who, { color: colors.text }]} numberOfLines={1}>{c.patient_name}</Text>
+                <View style={styles.headRight}>
+                  {isPending ? (
+                    <View style={[styles.pill, { backgroundColor: AMBER_BG }]}>
+                      <Text style={[styles.pillText, { color: AMBER_INK }]}>Pendiente</Text>
                     </View>
                   ) : (
-                    <>
-                      <TextInput
-                        style={[styles.input, { color: colors.text }]}
-                        placeholder="Escribí tu respuesta..."
-                        placeholderTextColor={colors.textSecondary}
-                        value={drafts[c.id] || ''}
-                        onChangeText={(t) => setDrafts((d) => ({ ...d, [c.id]: t }))}
-                        multiline
-                        numberOfLines={3}
-                        textAlignVertical="top"
-                      />
-                      <TouchableOpacity
-                        style={[styles.answerBtn, { backgroundColor: colors.primary, opacity: (drafts[c.id]?.trim() && busy !== c.id) ? 1 : 0.5 }]}
-                        onPress={() => handleAnswer(c.id)}
-                        disabled={!drafts[c.id]?.trim() || busy === c.id}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.answerBtnText}>{busy === c.id ? 'Enviando...' : 'Responder'}</Text>
-                      </TouchableOpacity>
-                    </>
+                    <View style={[styles.pill, { backgroundColor: TEAL + '1F' }]}>
+                      <Text style={[styles.pillText, { color: TEAL }]}>Respondida</Text>
+                    </View>
                   )}
+                  <Text style={[styles.price, { color: colors.primary }]}>{money(Number(c.price))}</Text>
                 </View>
-              ))
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+              </View>
+              <Text style={[styles.date, { color: GREY_INK }]}>{when(c.created_at)}</Text>
+              <Text style={[styles.q, { color: colors.text }]}>{c.question}</Text>
+
+              {c.status === 'answered' ? (
+                <View style={[styles.answerBox, { backgroundColor: colors.primary + '0D' }]}>
+                  <Text style={[styles.answerLbl, { color: colors.primary }]}>Tu respuesta</Text>
+                  <Text style={[styles.answerBody, { color: colors.text }]}>{c.answer}</Text>
+                </View>
+              ) : (
+                <>
+                  <TextInput
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="Escribí tu respuesta..."
+                    placeholderTextColor={GREY_INK}
+                    value={drafts[c.id] || ''}
+                    onChangeText={(t) => setDrafts((d) => ({ ...d, [c.id]: t }))}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    style={[styles.answerBtn, { backgroundColor: colors.primary, opacity: (drafts[c.id]?.trim() && busy !== c.id) ? 1 : 0.5 }]}
+                    onPress={() => handleAnswer(c.id)}
+                    disabled={!drafts[c.id]?.trim() || busy === c.id}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="send" size={15} color="#FFFFFF" />
+                    <Text style={styles.answerBtnText}>{busy === c.id ? 'Enviando...' : 'Responder'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          );
+        })
+      )}
+    </ModalSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  backdropTouch: { flex: 1 },
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
-  handleRow: { alignItems: 'center', paddingTop: 12, paddingBottom: 8, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'center' },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D1D6' },
-  closeBtn: { position: 'absolute', right: 20, top: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0EDED', justifyContent: 'center', alignItems: 'center' },
-  closeBtnText: { fontSize: 14, fontFamily: 'Outfit_600SemiBold', color: '#787586' },
-  content: { padding: 24, paddingBottom: 40 },
-  title: { fontSize: 24, fontFamily: 'PlayfairDisplay_700Bold' },
-  subtitle: { fontSize: 14, fontFamily: 'Outfit_400Regular', marginTop: 4, marginBottom: 18 },
-  empty: { fontSize: 14, fontFamily: 'Outfit_400Regular', lineHeight: 20 },
-  item: { borderRadius: 16, backgroundColor: '#FBFAFE', padding: 16, marginBottom: 12 },
-  itemHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  who: { fontSize: 15, fontFamily: 'Outfit_600SemiBold' },
+  empty: { fontSize: 14, fontFamily: 'Outfit_400Regular', lineHeight: 21 },
+  item: { borderRadius: 18, backgroundColor: '#FBFAFE', padding: 16, marginBottom: 12 },
+  itemHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  who: { fontSize: 15, fontFamily: 'Outfit_600SemiBold', flexShrink: 1 },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20 },
+  pillText: { fontSize: 10.5, fontFamily: 'Outfit_600SemiBold' },
   price: { fontSize: 14, fontFamily: 'Outfit_600SemiBold' },
-  date: { fontSize: 12, fontFamily: 'Outfit_400Regular', marginTop: 2, marginBottom: 8 },
+  date: { fontSize: 12, fontFamily: 'Outfit_400Regular', marginTop: 4, marginBottom: 8 },
   q: { fontSize: 15, fontFamily: 'Outfit_500Medium', lineHeight: 21 },
-  input: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, fontSize: 14, fontFamily: 'Outfit_400Regular', minHeight: 74, marginTop: 12, borderWidth: 1, borderColor: '#ECE9F5' },
-  answerBtn: { borderRadius: 12, padding: 12, alignItems: 'center', marginTop: 10 },
+  input: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 13, fontSize: 14, fontFamily: 'Outfit_400Regular', minHeight: 74, marginTop: 12, borderWidth: 1, borderColor: '#ECE9F5' },
+  answerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, padding: 12, marginTop: 10 },
   answerBtnText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Outfit_600SemiBold' },
-  answerBox: { borderRadius: 12, padding: 12, marginTop: 12 },
-  answerLbl: { fontSize: 11, fontFamily: 'Outfit_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
+  answerBox: { borderRadius: 14, padding: 13, marginTop: 12 },
+  answerLbl: { fontSize: 11, fontFamily: 'Outfit_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 },
   answerBody: { fontSize: 14, fontFamily: 'Outfit_400Regular', lineHeight: 21 },
 });
