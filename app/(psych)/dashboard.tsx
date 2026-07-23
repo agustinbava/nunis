@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import { getPsychPatients, getMoodEntries } from '../../lib/database';
-import { moodScoreToEmoji, moodScoreToColor } from '../../constants/themes';
+import { moodScoreToColor } from '../../constants/themes';
 import BroadcastModal from '../../components/BroadcastModal';
 import IncomeModal from '../../components/IncomeModal';
 import AgendaModal from '../../components/AgendaModal';
@@ -15,56 +16,51 @@ import PsychConsultationsModal from '../../components/PsychConsultationsModal';
 import Avatar from '../../components/Avatar';
 import { pickAndUploadAvatar } from '../../lib/avatar';
 
-const AVATAR_COLORS = [
-  '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
-  '#E74C3C', '#F39C12', '#2D3436', '#27AE60', '#a29bfe',
-];
+// Paleta cálida del rediseño (coherente con el mockup aprobado)
+const AMBER = '#E8A54B';
+const AMBER_BG = '#FBF1DF';
+const AMBER_INK = '#9A6A18';
+const CORAL = '#EC7C6A';
+const GREY_BADGE_BG = '#EFEDF2';
+const GREY_INK = '#8B8794';
 
-function getAvatarColor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+function firstName(name?: string | null) {
+  return (name || '').trim().split(/\s+/)[0] || '';
 }
 
-function getPatientStatus(data: any): { label: string; color: string; type: 'critical' | 'stable' | 'inactive' } {
-  if (!data || !data.entries || data.entries.length === 0) {
-    return { label: 'Sin registros', color: '#95A5A6', type: 'inactive' };
-  }
-  const lowDays = data.entries.filter((e: any) => e.score <= 3).length;
-  if (lowDays >= 3 || (data.last && data.last.score <= 2)) {
-    return { label: 'Mood Critico', color: '#E74C3C', type: 'critical' };
-  }
-  if (data.trend >= 0 && data.avg >= 5) {
-    return { label: 'Estable', color: '#27AE60', type: 'stable' };
-  }
-  return { label: 'Sin cambios', color: '#95A5A6', type: 'inactive' };
+function todayString() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function longDate() {
+  try {
+    const s = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch { return ''; }
 }
 
 function formatLastEntry(entry: any): string {
   if (!entry) return 'Sin registros';
   const d = new Date(entry.date + 'T12:00:00');
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return 'Hoy';
   if (diffDays === 1) return 'Ayer';
-  return `Hace ${diffDays} dias`;
+  return `Hace ${diffDays} días`;
+}
+
+function patientBadge(data: any): { label: string; bg: string; ink: string } | null {
+  const alerts = data?.alertDetails || [];
+  if (alerts.some((a: any) => a.severity === 'critical')) return { label: 'Ánimo bajo', bg: AMBER_BG, ink: AMBER_INK };
+  if (alerts.some((a: any) => a.text?.toLowerCase().includes('sin registros'))) return { label: 'Inactivo', bg: GREY_BADGE_BG, ink: GREY_INK };
+  return null;
 }
 
 async function copyToClipboard(text: string) {
   if (Platform.OS === 'web') {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch { return false; }
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
   }
-  try {
-    const Clipboard = require('react-native').Clipboard;
-    Clipboard.setString(text);
-    return true;
-  } catch { return false; }
+  try { require('react-native').Clipboard.setString(text); return true; } catch { return false; }
 }
 
 export default function PsychDashboardScreen() {
@@ -101,44 +97,27 @@ export default function PsychDashboardScreen() {
     const data: { [key: string]: any } = {};
     for (const p of pts) {
       const entries = await getMoodEntries(p.patient_id, 7);
-      const avg = entries.length > 0
-        ? entries.reduce((s: number, e: any) => s + e.score, 0) / entries.length
-        : 0;
+      const avg = entries.length > 0 ? entries.reduce((s: number, e: any) => s + e.score, 0) / entries.length : 0;
       const last = entries.length > 0 ? entries[0] : null;
-      const trend = entries.length >= 2
-        ? entries[0].score - entries[entries.length - 1].score
-        : 0;
+      const trend = entries.length >= 2 ? entries[0].score - entries[entries.length - 1].score : 0;
 
-      const alerts: { text: string; severity: 'critical' | 'warning' }[] = [];
+      const alertDetails: { text: string; severity: 'critical' | 'warning' }[] = [];
       const lowDays = entries.filter((e: any) => e.score <= 3).length;
+      if (lowDays >= 3) alertDetails.push({ text: `${lowDays} días con ánimo bajo esta semana`, severity: 'critical' });
 
-      // Alert: 3+ days with score <= 3 in the last 7 days
-      if (lowDays >= 3) {
-        alerts.push({ text: `${lowDays} dias con animo bajo esta semana`, severity: 'critical' });
-      }
-
-      // Alert: no entries in 3+ days (compare last entry date with today)
       if (last) {
-        const lastDate = new Date(last.date + 'T12:00:00');
-        const now = new Date();
-        const diffMs = now.getTime() - lastDate.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays >= 3) {
-          alerts.push({ text: `Sin registros hace ${diffDays} dias`, severity: 'warning' });
-        }
+        const diffDays = Math.floor((Date.now() - new Date(last.date + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 3) alertDetails.push({ text: `Sin registros hace ${diffDays} días`, severity: 'warning' });
       } else if (entries.length === 0) {
-        alerts.push({ text: 'Sin registros recientes', severity: 'warning' });
+        alertDetails.push({ text: 'Sin registros recientes', severity: 'warning' });
       }
 
-      // Alert: sudden drop (today's score is 3+ points lower than average)
       if (last && avg > 0) {
         const drop = avg - last.score;
-        if (drop >= 3) {
-          alerts.push({ text: `Caida abrupta: score de ${last.score} vs promedio de ${avg.toFixed(1)}`, severity: 'critical' });
-        }
+        if (drop >= 3) alertDetails.push({ text: `Caída abrupta: ${last.score} vs promedio ${avg.toFixed(1)}`, severity: 'critical' });
       }
 
-      data[p.patient_id] = { entries, avg: Math.round(avg * 10) / 10, last, trend, alerts: alerts.map(a => a.text), alertDetails: alerts };
+      data[p.patient_id] = { entries, avg: Math.round(avg * 10) / 10, last, trend, alertDetails };
     }
     setPatientData(data);
   }, [user]);
@@ -147,34 +126,37 @@ export default function PsychDashboardScreen() {
 
   const handleLogout = async () => {
     await logout();
-    if (Platform.OS === 'web') {
-      window.location.assign('/');
-    } else {
-      router.replace('/');
-    }
+    if (Platform.OS === 'web') window.location.assign('/');
+    else router.replace('/');
   };
 
   const handleCopy = async () => {
-    if (user?.share_code) {
-      const ok = await copyToClipboard(user.share_code);
-      if (ok) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+    if (user?.share_code && await copyToClipboard(user.share_code)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const totalAlerts = Object.values(patientData).reduce(
-    (s: number, d: any) => s + (d.alerts?.length || 0), 0
-  );
+  const today = todayString();
+  const loggedToday = patients.filter((p) => patientData[p.patient_id]?.last?.date === today).length;
+  const alertPatients = patients.filter((p) => (patientData[p.patient_id]?.alertDetails?.length || 0) > 0);
+
+  const attentionRows = alertPatients.slice(0, 4).map((p) => {
+    const alerts = patientData[p.patient_id].alertDetails;
+    const top = alerts.find((a: any) => a.severity === 'critical') || alerts[0];
+    return { patient: p, alert: top };
+  });
 
   const filteredPatients = filter === 'urgentes'
-    ? patients.filter((p) => {
-        const data = patientData[p.patient_id];
-        const status = getPatientStatus(data);
-        return status.type === 'critical';
-      })
+    ? patients.filter((p) => (patientData[p.patient_id]?.alertDetails?.length || 0) > 0)
     : patients;
+
+  const QUICK = [
+    { icon: 'calendar-outline', label: 'Agenda', onPress: () => setAgendaVisible(true), disabled: false },
+    { icon: 'wallet-outline', label: 'Ingresos', onPress: () => setIncomeVisible(true), disabled: false },
+    { icon: 'chatbubbles-outline', label: 'Consultas', onPress: () => setConsultVisible(true), disabled: false },
+    { icon: 'paper-plane-outline', label: 'Mensajes', onPress: () => setBroadcastVisible(true), disabled: patients.length === 0 },
+  ] as const;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -182,582 +164,275 @@ export default function PsychDashboardScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Image source={require('../../assets/nunis-logo.png')} style={{ width: 100, height: 36 }} resizeMode="contain" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Profesional</Text>
-            </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.hello, { color: colors.text }]} numberOfLines={1}>
+              Hola{firstName(user?.name) ? `, ${firstName(user?.name)}` : ''}
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{longDate()}</Text>
           </View>
-          <Avatar url={user?.avatar_url} name={user?.name} size={44} onPress={handleAvatarPress} editable loading={avatarLoading} />
+          <Avatar url={user?.avatar_url} name={user?.name} size={48} onPress={handleAvatarPress} editable loading={avatarLoading} />
         </View>
 
-        {/* Linking Code Card */}
-        <View style={styles.card}>
-          <Text style={[styles.labelMd, { color: colors.textSecondary }]}>
-            Codigo de Vinculacion
-          </Text>
-          <Text style={[styles.codeValue, { color: colors.primary }]}>
-            {user?.share_code || '------'}
-          </Text>
-          <TouchableOpacity onPress={handleCopy} style={styles.copyLink}>
-            <Text style={[styles.copyLinkText, { color: colors.primary }]}>
-              {copied ? 'Copiado!' : 'Copiar codigo'}
-            </Text>
-          </TouchableOpacity>
+        {/* Stats strip */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNum, { color: colors.text }]}>{patients.length}</Text>
+            <Text style={styles.statLbl}>Pacientes</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNum, { color: colors.text }]}>{loggedToday}</Text>
+            <Text style={styles.statLbl}>Registros hoy</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statNum, { color: alertPatients.length > 0 ? AMBER_INK : colors.text }]}>{alertPatients.length}</Text>
+            <Text style={styles.statLbl}>Alertas</Text>
+          </View>
         </View>
+
+        {/* Atención */}
+        {attentionRows.length > 0 && (
+          <View style={styles.attnCard}>
+            <View style={styles.attnHead}>
+              <View style={styles.attnHeadDot} />
+              <Text style={styles.attnHeadText}>ATENCIÓN</Text>
+            </View>
+            {attentionRows.map(({ patient, alert }, i) => (
+              <TouchableOpacity
+                key={patient.id}
+                style={[styles.attnRow, i === 0 && { borderTopWidth: 0 }]}
+                onPress={() => router.push(`/(psych)/patient/${patient.patient_id}`)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.attnDot, { backgroundColor: alert.severity === 'critical' ? CORAL : '#B9B3C4' }]} />
+                <Text style={styles.attnText} numberOfLines={1}>
+                  <Text style={styles.attnName}>{firstName(patient.name)}</Text>
+                  <Text style={styles.attnMuted}>{`  ·  ${alert.text}`}</Text>
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color="#C9B48C" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Acciones rápidas */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setBroadcastVisible(true)}
-            activeOpacity={0.85}
-            disabled={patients.length === 0}
-          >
-            <Text style={styles.actionBtnText}>Mensaje</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
-            onPress={() => setAgendaVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Agenda</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
-            onPress={() => setConsultVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Consultas</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
-            onPress={() => setIncomeVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Ingresos</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, styles.card]}>
-            <Text style={[styles.labelMd, { color: colors.textSecondary }]}>Pacientes Activos</Text>
-            <Text style={[styles.statValue, { color: colors.text }]}>{patients.length}</Text>
-          </View>
-          <View style={[styles.statCard, styles.card]}>
-            <Text style={[styles.labelMd, { color: colors.textSecondary }]}>Alertas Criticas</Text>
-            <Text style={[styles.statValue, { color: totalAlerts > 0 ? colors.danger : colors.text }]}>
-              {totalAlerts}
-            </Text>
-          </View>
-        </View>
-
-        {/* Upsell Card */}
-        <View style={[styles.upsellCard, { backgroundColor: colors.primary }]}>
-          <Text style={styles.upsellTitle}>Desbloquea Nunis Pro</Text>
-          <Text style={styles.upsellBody}>
-            Accede a analisis de sentimiento avanzados, reportes mensuales detallados y gestion ilimitada de pacientes.
-          </Text>
-          <View style={styles.upsellFooter}>
-            <Text style={styles.upsellPrice}>$15/mes</Text>
-            <TouchableOpacity style={styles.upsellButton} activeOpacity={0.8}>
-              <Text style={[styles.upsellButtonText, { color: colors.primary }]}>Actualizar Ahora</Text>
+          {QUICK.map((a) => (
+            <TouchableOpacity key={a.label} style={[styles.act, a.disabled && { opacity: 0.45 }]} onPress={a.onPress} disabled={a.disabled} activeOpacity={0.8}>
+              <View style={[styles.actIcon, { backgroundColor: colors.accent }]}>
+                <Ionicons name={a.icon as any} size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.actLabel, { color: colors.text }]}>{a.label}</Text>
             </TouchableOpacity>
-          </View>
+          ))}
         </View>
 
-        {/* Patient Panel Section */}
+        {/* Código de vinculación (compacto) */}
+        <View style={styles.codePill}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.codeLbl}>CÓDIGO DE VINCULACIÓN</Text>
+            <Text style={[styles.codeVal, { color: colors.primary }]}>{user?.share_code || '------'}</Text>
+          </View>
+          <TouchableOpacity onPress={handleCopy} style={[styles.copyBtn, { borderColor: colors.primary }]} activeOpacity={0.7}>
+            <Text style={[styles.copyBtnText, { color: colors.primary }]}>{copied ? 'Copiado' : 'Copiar'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tus pacientes */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Panel de Pacientes</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tus pacientes</Text>
           <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                filter === 'todos' && { backgroundColor: colors.bg },
-              ]}
-              onPress={() => setFilter('todos')}
-            >
-              <Text style={[
-                styles.filterTabText,
-                { color: filter === 'todos' ? colors.text : colors.textSecondary },
-              ]}>Todos</Text>
+            <TouchableOpacity style={[styles.filterTab, filter === 'todos' && { backgroundColor: '#FFFFFF' }]} onPress={() => setFilter('todos')}>
+              <Text style={[styles.filterTabText, { color: filter === 'todos' ? colors.text : colors.textSecondary }]}>Todos</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                filter === 'urgentes' && { backgroundColor: colors.danger + '18' },
-              ]}
-              onPress={() => setFilter('urgentes')}
-            >
-              <Text style={[
-                styles.filterTabText,
-                { color: filter === 'urgentes' ? colors.danger : colors.textSecondary },
-              ]}>Urgentes</Text>
+            <TouchableOpacity style={[styles.filterTab, filter === 'urgentes' && { backgroundColor: AMBER_BG }]} onPress={() => setFilter('urgentes')}>
+              <Text style={[styles.filterTabText, { color: filter === 'urgentes' ? AMBER_INK : colors.textSecondary }]}>Urgentes</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {filteredPatients.length === 0 ? (
-          <View style={styles.card}>
+          <View style={styles.emptyCard}>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
               {filter === 'urgentes'
-                ? 'No hay pacientes con alertas urgentes.'
-                : `Aun no tenes pacientes vinculados.\n\nComparti tu codigo ${user?.share_code || ''} con tus pacientes para que se vinculen desde su app.`}
+                ? 'Ningún paciente con alertas. Todo tranquilo.'
+                : `Aún no tenés pacientes vinculados.\n\nCompartí tu código ${user?.share_code || ''} para que se vinculen desde su app.`}
             </Text>
           </View>
         ) : (
           filteredPatients.map((p) => {
             const data = patientData[p.patient_id] || {};
-            const status = getPatientStatus(data);
-
+            const badge = patientBadge(data);
+            const dotColor = data.last ? moodScoreToColor(data.last.score, colors) : '#C4BFCE';
+            const spark = (data.entries || []).slice().reverse();
             return (
               <TouchableOpacity
                 key={p.id}
-                style={styles.patientCard}
+                style={styles.pcard}
                 onPress={() => router.push(`/(psych)/patient/${p.patient_id}`)}
                 activeOpacity={0.7}
               >
-                <View style={styles.patientRow}>
-                  {/* Avatar + Name + Status */}
-                  <View style={styles.patientInfo}>
-                    <Avatar url={p.avatar_url} name={p.name} size={44} />
-                    <View style={styles.patientNameBlock}>
-                      <Text style={[styles.patientName, { color: colors.text }]}>{p.name}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: status.color + '18' }]}>
-                        <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-                        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                <Avatar url={p.avatar_url} name={p.name} size={46} />
+                <View style={styles.pinfo}>
+                  <View style={styles.pnameRow}>
+                    <Text style={[styles.pname, { color: colors.text }]} numberOfLines={1}>{p.name}</Text>
+                    {badge && (
+                      <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                        <Text style={[styles.badgeText, { color: badge.ink }]}>{badge.label}</Text>
                       </View>
-                    </View>
+                    )}
                   </View>
-
-                  {/* Chevron */}
-                  <Text style={[styles.chevron, { color: colors.textSecondary }]}>{'>'}</Text>
+                  <View style={styles.pmeta}>
+                    {spark.length > 0 ? (
+                      <View style={styles.spark}>
+                        {spark.map((e: any, i: number) => (
+                          <View key={i} style={[styles.sparkBar, { height: Math.max(5, (e.score / 10) * 22), backgroundColor: moodScoreToColor(e.score, colors) }]} />
+                        ))}
+                      </View>
+                    ) : <View style={{ width: 4 }} />}
+                    <Text style={styles.plast}>{formatLastEntry(data.last)}</Text>
+                  </View>
                 </View>
-
-                {/* Mini sparkline bars */}
-                {data.entries && data.entries.length > 0 && (
-                  <View style={styles.sparklineRow}>
-                    {data.entries.slice().reverse().map((e: any, i: number) => (
-                      <View
-                        key={i}
-                        style={[styles.sparklineBar, {
-                          height: Math.max(6, (e.score / 10) * 36),
-                          backgroundColor: moodScoreToColor(e.score, colors),
-                          opacity: 0.7,
-                        }]}
-                      />
-                    ))}
-                  </View>
-                )}
-
-                {/* Alerts */}
-                {data.alertDetails && data.alertDetails.length > 0 && (
-                  <View style={styles.alertsContainer}>
-                    {data.alertDetails.map((alert: { text: string; severity: 'critical' | 'warning' }, idx: number) => (
-                      <View
-                        key={idx}
-                        style={[
-                          styles.alertItem,
-                          {
-                            borderLeftColor: alert.severity === 'critical' ? '#E74C3C' : '#FF9F43',
-                            backgroundColor: alert.severity === 'critical' ? '#E74C3C10' : '#FF9F4310',
-                          },
-                        ]}
-                      >
-                        <Text style={[
-                          styles.alertItemText,
-                          { color: alert.severity === 'critical' ? '#E74C3C' : '#FF9F43' },
-                        ]}>
-                          {alert.severity === 'critical' ? '!' : '!'} {alert.text}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Last entry */}
-                <View style={styles.patientFooter}>
-                  <Text style={[styles.lastEntryLabel, { color: colors.textSecondary }]}>
-                    Ultimo Registro
-                  </Text>
-                  <Text style={[styles.lastEntryValue, { color: colors.text }]}>
-                    {formatLastEntry(data.last)}
-                  </Text>
+                <View style={styles.pright}>
+                  <View style={[styles.mood, { backgroundColor: dotColor }]} />
+                  <Ionicons name="chevron-forward" size={17} color="#C7C3D0" />
                 </View>
               </TouchableOpacity>
             );
           })
         )}
 
-        {/* Logout link */}
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutLink}>
-          <Text style={[styles.logoutText, { color: colors.textSecondary }]}>Cerrar sesion</Text>
+        {/* Nunis Pro (secundario, al final) */}
+        <View style={[styles.upsellCard, { backgroundColor: colors.primary }]}>
+          <Text style={styles.upsellTitle}>Desbloqueá Nunis Pro</Text>
+          <Text style={styles.upsellBody}>
+            Análisis de sentimiento avanzados, reportes mensuales detallados y gestión ilimitada de pacientes.
+          </Text>
+          <View style={styles.upsellFooter}>
+            <Text style={styles.upsellPrice}>$15/mes</Text>
+            <TouchableOpacity style={styles.upsellButton} activeOpacity={0.8}>
+              <Text style={[styles.upsellButtonText, { color: colors.primary }]}>Actualizar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Logout */}
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutLink} activeOpacity={0.7}>
+          <Text style={[styles.logoutText, { color: colors.textSecondary }]}>Cerrar sesión</Text>
         </TouchableOpacity>
 
       </ScrollView>
 
-      <BroadcastModal
-        visible={broadcastVisible}
-        psychId={user?.id || ''}
-        patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
-        onClose={() => setBroadcastVisible(false)}
-      />
-
-      <IncomeModal
-        visible={incomeVisible}
-        psychId={user?.id || ''}
-        patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))}
-        onClose={() => setIncomeVisible(false)}
-      />
-
-      <AgendaModal
-        visible={agendaVisible}
-        psychId={user?.id || ''}
-        onClose={() => setAgendaVisible(false)}
-      />
-
-      <PsychConsultationsModal
-        visible={consultVisible}
-        psychId={user?.id || ''}
-        onClose={() => setConsultVisible(false)}
-      />
+      <BroadcastModal visible={broadcastVisible} psychId={user?.id || ''} patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))} onClose={() => setBroadcastVisible(false)} />
+      <IncomeModal visible={incomeVisible} psychId={user?.id || ''} patients={patients.map((p: any) => ({ patient_id: p.patient_id, name: p.name }))} onClose={() => setIncomeVisible(false)} />
+      <AgendaModal visible={agendaVisible} psychId={user?.id || ''} onClose={() => setAgendaVisible(false)} />
+      <PsychConsultationsModal visible={consultVisible} psychId={user?.id || ''} onClose={() => setConsultVisible(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    padding: 24,
-    paddingBottom: 48,
-  },
+  container: { flex: 1 },
+  scroll: { padding: 24, paddingBottom: 48, maxWidth: 520, width: '100%', alignSelf: 'center' },
 
   // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  wordmark: {
-    fontSize: 28,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    letterSpacing: -0.5,
-  },
-  badge: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: '#6C5CE7',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontFamily: 'Outfit_600SemiBold',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, gap: 12 },
+  hello: { fontSize: 27, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 },
+  subtitle: { fontSize: 13, fontFamily: 'Outfit_500Medium', marginTop: 5 },
 
-  // Card base
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-
-  // Code Card
-  labelMd: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-    letterSpacing: 0.1,
-    marginBottom: 8,
-  },
-  codeValue: {
-    fontSize: 36,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    letterSpacing: 6,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  copyLink: {
-    alignSelf: 'flex-start',
-  },
-  copyLinkText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-  },
-
-  // Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: {
-    flex: 1,
-    padding: 20,
-    marginBottom: 0,
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 20, paddingVertical: 15, paddingHorizontal: 12,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
   },
-  statValue: {
-    fontSize: 32,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    marginTop: 4,
+  statNum: { fontSize: 26, fontFamily: 'PlayfairDisplay_700Bold', lineHeight: 30 },
+  statLbl: { fontSize: 11.5, fontFamily: 'Outfit_500Medium', color: GREY_INK, marginTop: 6 },
+
+  // Atención
+  attnCard: {
+    backgroundColor: AMBER_BG, borderRadius: 22, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 6, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
   },
+  attnHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  attnHeadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: AMBER },
+  attnHeadText: { fontSize: 11, fontFamily: 'Outfit_600SemiBold', color: AMBER_INK, letterSpacing: 1.2 },
+  attnRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(154,106,24,0.14)' },
+  attnDot: { width: 9, height: 9, borderRadius: 5 },
+  attnText: { flex: 1, fontSize: 13.5 },
+  attnName: { fontFamily: 'Outfit_600SemiBold', color: '#5a4a2a' },
+  attnMuted: { fontFamily: 'Outfit_500Medium', color: '#9a865f' },
+
+  // Quick actions
+  actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  act: {
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 18, paddingVertical: 13, alignItems: 'center', gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
+  },
+  actIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actLabel: { fontSize: 11.5, fontFamily: 'Outfit_600SemiBold' },
+
+  // Código pill
+  codePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 18,
+    paddingVertical: 14, paddingHorizontal: 18, marginBottom: 24,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
+  },
+  codeLbl: { fontSize: 10, fontFamily: 'Outfit_600SemiBold', color: GREY_INK, letterSpacing: 1 },
+  codeVal: { fontSize: 22, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: 4, textTransform: 'uppercase', marginTop: 3 },
+  copyBtn: { borderWidth: 1.5, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  copyBtnText: { fontSize: 13, fontFamily: 'Outfit_600SemiBold' },
+
+  // Section
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.2 },
+  filterRow: { flexDirection: 'row', gap: 4 },
+  filterTab: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  filterTabText: { fontSize: 12, fontFamily: 'Outfit_600SemiBold' },
+
+  // Empty
+  emptyCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24, marginBottom: 12,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
+  },
+  emptyText: { fontSize: 14, fontFamily: 'Outfit_400Regular', textAlign: 'center', lineHeight: 22 },
+
+  // Patient card
+  pcard: {
+    flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: '#FFFFFF', borderRadius: 22,
+    paddingVertical: 14, paddingHorizontal: 15, marginBottom: 11,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2,
+  },
+  pinfo: { flex: 1, minWidth: 0 },
+  pnameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pname: { fontSize: 15, fontFamily: 'Outfit_600SemiBold', letterSpacing: -0.1, flexShrink: 1 },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
+  badgeText: { fontSize: 10, fontFamily: 'Outfit_600SemiBold', letterSpacing: 0.2 },
+  pmeta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  spark: { flexDirection: 'row', alignItems: 'flex-end', gap: 2.5, height: 22 },
+  sparkBar: { width: 4, borderRadius: 2 },
+  plast: { fontSize: 11.5, fontFamily: 'Outfit_500Medium', color: GREY_INK },
+  pright: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  mood: { width: 11, height: 11, borderRadius: 6 },
 
   // Upsell
   upsellCard: {
-    borderRadius: 24,
-    padding: 28,
-    marginBottom: 28,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    borderRadius: 24, padding: 24, marginTop: 12, marginBottom: 8,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
-  upsellTitle: {
-    fontSize: 22,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  upsellBody: {
-    fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
-    color: '#FFFFFF',
-    opacity: 0.9,
-    lineHeight: 21,
-    marginBottom: 20,
-  },
-  upsellFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  upsellPrice: {
-    fontSize: 20,
-    fontFamily: 'Outfit_600SemiBold',
-    color: '#FFFFFF',
-  },
+  upsellTitle: { fontSize: 20, fontFamily: 'PlayfairDisplay_700Bold', color: '#FFFFFF', marginBottom: 8 },
+  upsellBody: { fontSize: 13.5, fontFamily: 'Outfit_400Regular', color: '#FFFFFF', opacity: 0.9, lineHeight: 20, marginBottom: 18 },
+  upsellFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  upsellPrice: { fontSize: 19, fontFamily: 'Outfit_600SemiBold', color: '#FFFFFF' },
   upsellButton: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 100,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 22, paddingVertical: 11, borderRadius: 100,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  upsellButtonText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-  },
-
-  // Section
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontFamily: 'PlayfairDisplay_700Bold',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  filterTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  filterTabText: {
-    fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
-  },
-
-  // Empty
-  emptyText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_400Regular',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-
-  // Patient Card
-  patientCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  patientRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  patientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLetter: {
-    fontSize: 18,
-    fontFamily: 'Outfit_600SemiBold',
-    color: '#FFFFFF',
-  },
-  patientNameBlock: {
-    flex: 1,
-  },
-  patientName: {
-    fontSize: 16,
-    fontFamily: 'Outfit_600SemiBold',
-    marginBottom: 4,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 11,
-    fontFamily: 'Outfit_500Medium',
-  },
-  chevron: {
-    fontSize: 20,
-    fontFamily: 'Outfit_500Medium',
-    marginLeft: 8,
-  },
-
-  // Sparkline
-  sparklineRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 4,
-    marginTop: 14,
-    height: 40,
-    paddingHorizontal: 4,
-  },
-  sparklineBar: {
-    flex: 1,
-    borderRadius: 3,
-    minHeight: 4,
-  },
-
-  // Footer
-  patientFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#f0edec',
-  },
-  lastEntryLabel: {
-    fontSize: 10,
-    fontFamily: 'Outfit_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  lastEntryValue: {
-    fontSize: 13,
-    fontFamily: 'Outfit_500Medium',
-  },
-
-  // Alerts
-  alertsContainer: {
-    marginTop: 12,
-    gap: 6,
-  },
-  alertItem: {
-    borderLeftWidth: 3,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  alertItemText: {
-    fontSize: 12,
-    fontFamily: 'Outfit_600SemiBold',
-  },
-
-  actionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  actionBtn: {
-    flexGrow: 1,
-    flexBasis: '46%',
-    borderRadius: 16,
-    padding: 15,
-    alignItems: 'center',
-  },
-  actionBtnOutline: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-  },
-  actionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Outfit_600SemiBold',
-  },
+  upsellButtonText: { fontSize: 14, fontFamily: 'Outfit_600SemiBold' },
 
   // Logout
   logoutLink: {
-    alignSelf: 'center',
-    marginTop: 28,
-    marginBottom: 32,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 9999,
-    borderWidth: 1.5,
-    borderColor: '#E5E1EE',
-    backgroundColor: '#FFFFFF',
+    alignSelf: 'center', marginTop: 24, marginBottom: 32, paddingVertical: 14, paddingHorizontal: 40,
+    borderRadius: 9999, borderWidth: 1.5, borderColor: '#E5E1EE', backgroundColor: '#FFFFFF',
   },
-  logoutText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-  },
+  logoutText: { fontSize: 14, fontFamily: 'Outfit_600SemiBold' },
 });
