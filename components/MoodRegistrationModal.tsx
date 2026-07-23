@@ -3,7 +3,9 @@ import {
   View, Text, TouchableOpacity, StyleSheet, TextInput, Modal,
   ScrollView, Dimensions, Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import EmotionSelector from './EmotionSelector';
+import { GREY_INK } from '../constants/palette';
 import { useTheme } from '../lib/theme-context';
 import { useAuth } from '../lib/auth-context';
 import { getActivities, createMoodEntry, createActivity, getMoodEntries, getPatientPsych } from '../lib/database';
@@ -141,8 +143,8 @@ export default function MoodRegistrationModal({ visible, onClose, onSaved }: Moo
           {/* Drag handle */}
           <View style={styles.handleRow}>
             <View style={styles.handle} />
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <Text style={styles.closeBtnText}>X</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={18} color={GREY_INK} />
             </TouchableOpacity>
           </View>
 
@@ -367,17 +369,21 @@ const cardShadow = {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(30,26,45,0.45)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   backdropTouch: {
     flex: 1,
+    alignSelf: 'stretch',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     overflow: 'hidden',
+    width: '100%',
+    maxWidth: 560,
   },
   handleRow: {
     alignItems: 'center',
@@ -391,7 +397,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D1D1D6',
+    backgroundColor: '#DEDAE6',
   },
   closeBtn: {
     position: 'absolute',
@@ -400,14 +406,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F0EDED',
+    backgroundColor: '#F3F1F6',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  closeBtnText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-    color: '#787586',
   },
   scrollContent: {
     padding: 20,
