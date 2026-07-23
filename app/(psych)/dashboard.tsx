@@ -11,6 +11,7 @@ import { moodScoreToEmoji, moodScoreToColor } from '../../constants/themes';
 import BroadcastModal from '../../components/BroadcastModal';
 import IncomeModal from '../../components/IncomeModal';
 import AgendaModal from '../../components/AgendaModal';
+import PsychConsultationsModal from '../../components/PsychConsultationsModal';
 
 const AVATAR_COLORS = [
   '#6C5CE7', '#FF9F43', '#10AC84', '#FF78B0', '#00D2D3',
@@ -75,6 +76,7 @@ export default function PsychDashboardScreen() {
   const [broadcastVisible, setBroadcastVisible] = useState(false);
   const [incomeVisible, setIncomeVisible] = useState(false);
   const [agendaVisible, setAgendaVisible] = useState(false);
+  const [consultVisible, setConsultVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -204,6 +206,13 @@ export default function PsychDashboardScreen() {
             activeOpacity={0.85}
           >
             <Text style={[styles.actionBtnText, { color: colors.primary }]}>Agenda</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
+            onPress={() => setConsultVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>Consultas</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnOutline, { borderColor: colors.primary }]}
@@ -394,6 +403,12 @@ export default function PsychDashboardScreen() {
         visible={agendaVisible}
         psychId={user?.id || ''}
         onClose={() => setAgendaVisible(false)}
+      />
+
+      <PsychConsultationsModal
+        visible={consultVisible}
+        psychId={user?.id || ''}
+        onClose={() => setConsultVisible(false)}
       />
     </SafeAreaView>
   );
@@ -696,11 +711,13 @@ const styles = StyleSheet.create({
 
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 20,
   },
   actionBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '46%',
     borderRadius: 16,
     padding: 15,
     alignItems: 'center',

@@ -375,3 +375,36 @@ export async function deleteSlot(id: string) {
   const { error } = await supabase.from('appointments').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// ── Micro-consultas asincrónicas ──
+export async function createConsultation(
+  id: string, patientId: string, psychId: string, question: string, price: number
+) {
+  const { error } = await supabase.from('consultations').insert({
+    id, patient_id: patientId, psychologist_id: psychId, question, price, status: 'pending',
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getPatientConsultations(patientId: string) {
+  const { data, error } = await supabase.from('consultations')
+    .select('*, psych:profiles!psychologist_id(name)')
+    .eq('patient_id', patientId).order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((c: any) => ({ ...c, psych_name: c.psych?.name ?? 'Tu profesional' }));
+}
+
+export async function getPsychConsultations(psychId: string) {
+  const { data, error } = await supabase.from('consultations')
+    .select('*, patient:profiles!patient_id(name)')
+    .eq('psychologist_id', psychId).order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((c: any) => ({ ...c, patient_name: c.patient?.name ?? 'Paciente' }));
+}
+
+export async function answerConsultation(id: string, answer: string) {
+  const { error } = await supabase.from('consultations')
+    .update({ answer, status: 'answered', answered_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}

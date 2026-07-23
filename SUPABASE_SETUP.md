@@ -104,6 +104,12 @@ Para que el psicólogo publique horarios y el paciente reserve (botón "Agenda" 
 dashboard, "Ver turnos" en el perfil del paciente):
 - En el **SQL Editor**, corré [`supabase/agenda.sql`](supabase/agenda.sql) (additivo, tabla `appointments` con RLS del flujo de reserva).
 
+## 5g. Micro-consultas asincrónicas
+
+Para que el paciente haga consultas puntuales y el psicólogo responda (botón
+"Consultar entre sesiones" en el perfil del paciente, "Consultas" en el dashboard):
+- En el **SQL Editor**, corré [`supabase/consultations.sql`](supabase/consultations.sql) (additivo, tabla `consultations` con RLS).
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

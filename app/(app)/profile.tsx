@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import AppContainer from '../../components/AppContainer';
 import PatientAgendaModal from '../../components/PatientAgendaModal';
+import ConsultationModal from '../../components/ConsultationModal';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
   const [activities, setActivities] = useState<any[]>([]);
   const [psychLink, setPsychLink] = useState<any>(null);
   const [agendaVisible, setAgendaVisible] = useState(false);
+  const [consultVisible, setConsultVisible] = useState(false);
   const [psychCode, setPsychCode] = useState('');
   const [linkError, setLinkError] = useState('');
   const [linkSuccess, setLinkSuccess] = useState('');
@@ -219,6 +221,13 @@ export default function ProfileScreen() {
                 <Text style={styles.agendaBtnText}>Ver turnos y reservar</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={[styles.consultBtn, { borderColor: colors.primary }]}
+                onPress={() => setConsultVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.consultBtnText, { color: colors.primary }]}>Consultar entre sesiones</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.unlinkBtn, cardShadow]}
                 onPress={handleUnlink}
                 activeOpacity={0.7}
@@ -291,6 +300,14 @@ export default function ProfileScreen() {
           visible={agendaVisible}
           patientId={user?.id || ''}
           onClose={() => setAgendaVisible(false)}
+        />
+
+        <ConsultationModal
+          visible={consultVisible}
+          patientId={user?.id || ''}
+          psychId={psychLink?.psychologist_id || ''}
+          psychName={psychLink?.name}
+          onClose={() => setConsultVisible(false)}
         />
     </AppContainer>
   );
@@ -475,6 +492,18 @@ const styles = StyleSheet.create({
   },
   agendaBtnText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  consultBtn: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  consultBtnText: {
     fontSize: 15,
     fontFamily: 'Outfit_600SemiBold',
   },
