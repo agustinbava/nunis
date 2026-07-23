@@ -51,7 +51,13 @@ function NativeLanding() {
 }
 
 export default function Index() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Mientras se restaura la sesión persistida, no mostrar la landing: evita el
+  // "flash de landing" al recargar cuando el usuario ya está logueado.
+  if (loading) {
+    return <View style={[styles.landing, { backgroundColor: '#F8F7FF' }]} />;
+  }
 
   if (!user) {
     if (Platform.OS === 'web') {
