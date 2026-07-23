@@ -53,16 +53,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     (async () => {
       const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user?.id;
-      if (uid) {
-        const profile = await getUserById(uid).catch(() => null);
-        if (mounted && profile) setUser(profile as User);
+      const sess = data.session;
+      if (sess?.user) {
+        // Intentar traer el perfil (reintento corto por si la DB está lenta)
+        let profile = await getUserById(sess.user.id).catch(() => null);
+        if (!profile) {
+          await new Promise((r) => setTimeout(r, 700));
+          profile = await getUserById(sess.user.id).catch(() => null);
+        }
+        // Si el perfil no vino, NO deslogueamos: armamos un usuario mínimo desde
+        // la sesión (id, email, nombre, rol vienen en el token). Mantiene la
+        // sesión viva aunque la DB haya fallado momentáneamente.
+        if (mounted) setUser((profile as User) || fallbackUserFromSession(sess.user));
       }
       if (mounted) setLoading(false);
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      // Solo deslogueamos ante un SIGNED_OUT explícito. Un session=null
+      // transitorio (blip de red / refresh lento) NO debe cerrar la sesión.
+      if (event === 'SIGNED_OUT') {
         setUser(null);
         setEncryptionKey(null);
       }
@@ -163,6 +173,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+function fallbackUserFromSession(u: any): User {
+  const md = u?.user_metadata || {};
+  return {
+    id: u.id,
+    email: u.email || '',
+    name: md.name || (u.email ? u.email.split('@')[0] : 'Usuario'),
+    role: md.role === 'psychologist' ? 'psychologist' : 'patient',
+    theme_primary: '#6C5CE7',
+    theme_secondary: '#a29bfe',
+    theme_accent: '#e4dfff',
+    theme_bg: '#F8F7FF',
+    theme_card: '#FFFFFF',
+    theme_text: '#1c1b1b',
+    personality: 'calm',
+    share_code: '',
+    public_key: '',
+  };
 }
 
 function generateShareCode(): string {
