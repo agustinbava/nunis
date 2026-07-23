@@ -41,6 +41,32 @@ vía Supabase Auth. Para tener data de demo, registrá a mano desde la app:
 - Logueá como psicóloga → vinculá al paciente con ese código.
 - Cargá algunos registros de ánimo desde la app para poblar el dashboard.
 
+## 5b. Resumen pre-sesión con IA (Edge Function + Claude)
+
+La vista de paciente del psicólogo tiene un botón **"Generar resumen con IA"** que
+llama a una Supabase Edge Function ([supabase/functions/pre-session-summary](supabase/functions/pre-session-summary/index.ts)),
+la cual usa Claude para resumir los datos (scores, actividades, correlaciones, tareas — nada encriptado)
+y sugerir temas de sesión. La API key queda del lado servidor.
+
+Pasos para activarlo:
+1. Instalá la CLI de Supabase (si no la tenés): `brew install supabase/tap/supabase`
+2. Login y link al proyecto:
+```bash
+supabase login
+supabase link --project-ref tqimrllinxdjhljuwxor
+```
+3. Cargá tu API key de Anthropic como secreto (console.anthropic.com → API Keys):
+```bash
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+4. Deploy de la función:
+```bash
+supabase functions deploy pre-session-summary
+```
+
+Sin este paso, el botón muestra un error pidiéndote que despliegues la función.
+El resto de la app funciona igual.
+
 ## 6. Deploy web (Vercel — recomendado)
 1. Subí el repo a GitHub (si no está actualizado).
 2. En [vercel.com](https://vercel.com) → **Add New Project** → importá el repo.

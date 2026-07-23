@@ -12,6 +12,7 @@ import {
   createTask, getPatientTasks,
 } from '../../../lib/database';
 import { moodScoreToEmoji, moodScoreToColor } from '../../../constants/themes';
+import { supabase } from '../../../lib/supabase';
 
 export default function PatientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +27,28 @@ export default function PatientDetailScreen() {
   const [tab, setTab] = useState<'resumen' | 'historial' | 'correlaciones'>('resumen');
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiTopics, setAiTopics] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const generateSummary = async () => {
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('pre-session-summary', {
+        body: { patientId: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSummary(data.resumen);
+      setAiTopics(data.temas ?? []);
+    } catch (e: any) {
+      setAiError('No se pudo generar el resumen con IA. Verificá que la Edge Function esté desplegada. ' + (e?.message ?? ''));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     if (!id || !user) return;
@@ -181,6 +204,44 @@ export default function PatientDetailScreen() {
               </Text>
             </View>
           )}
+
+          {/* Resumen generado con IA */}
+          <View style={styles.aiSection}>
+            {aiSummary ? (
+              <View>
+                <Text style={[styles.aiLabel, { color: colors.primary }]}>Resumen IA</Text>
+                <Text style={[styles.aiText, { color: colors.text }]}>{aiSummary}</Text>
+                {aiTopics.length > 0 && (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={[styles.aiLabel, { color: colors.primary }]}>Temas sugeridos</Text>
+                    {aiTopics.map((t, i) => (
+                      <View key={i} style={styles.aiTopicRow}>
+                        <View style={[styles.aiTopicDot, { backgroundColor: colors.primary }]} />
+                        <Text style={[styles.aiTopicText, { color: colors.textSecondary }]}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <TouchableOpacity onPress={generateSummary} disabled={aiLoading} style={{ marginTop: 12 }}>
+                  <Text style={[styles.aiRegen, { color: colors.primary }]}>
+                    {aiLoading ? 'Generando...' : 'Regenerar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.aiBtn, { backgroundColor: colors.primary }, aiLoading && { opacity: 0.7 }]}
+                onPress={generateSummary}
+                disabled={aiLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.aiBtnText}>
+                  {aiLoading ? 'Generando resumen...' : 'Generar resumen con IA'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {aiError ? <Text style={[styles.aiError, { color: colors.danger }]}>{aiError}</Text> : null}
+          </View>
         </View>
 
         {/* Tab Row */}
@@ -535,6 +596,62 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Outfit_600SemiBold',
     textAlign: 'center',
+  },
+
+  aiSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  aiLabel: {
+    fontSize: 12,
+    fontFamily: 'Outfit_600SemiBold',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  aiText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    lineHeight: 21,
+  },
+  aiTopicRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 6,
+  },
+  aiTopicDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 7,
+  },
+  aiTopicText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    flex: 1,
+    lineHeight: 20,
+  },
+  aiRegen: {
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  aiBtn: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  aiBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  aiError: {
+    fontSize: 12,
+    fontFamily: 'Outfit_500Medium',
+    marginTop: 10,
   },
 
   // Tabs
