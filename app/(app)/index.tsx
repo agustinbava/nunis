@@ -10,7 +10,7 @@ import { useTheme } from '../../lib/theme-context';
 import { useAuth } from '../../lib/auth-context';
 import {
   getMoodEntries, getAllMoodEntries, getCorrelationData, getPatientTasks, completeTask,
-  getProfessionals, getPatientMessages, markMessageRead,
+  getProfessionals, getPatientMessages, markMessageRead, getPatientPsych,
 } from '../../lib/database';
 import { moodScoreToColor, moodScoreToEmoji } from '../../constants/themes';
 import { getEmotionLabel } from '../../constants/emotions';
@@ -61,6 +61,7 @@ export default function HomeScreen() {
   const [correlations, setCorrelations] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [professionals, setProfessionals] = useState<any[]>([]);
+  const [hasPsych, setHasPsych] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedProf, setSelectedProf] = useState<any>(null);
   const [profModalVisible, setProfModalVisible] = useState(false);
@@ -136,11 +137,15 @@ export default function HomeScreen() {
       }
     } catch { setMessages([]); }
 
-    // Directorio de profesionales
+    // Directorio de profesionales + si ya tiene psicólogo
     try {
       const profs = await getProfessionals();
       setProfessionals(profs);
     } catch { setProfessionals([]); }
+    try {
+      const myPsych = await getPatientPsych(user.id);
+      setHasPsych(!!myPsych);
+    } catch { setHasPsych(false); }
 
     setLoaded(true);
 
@@ -329,30 +334,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Recommended psychologists */}
-      {professionals.length > 0 && (
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Profesionales recomendados</Text>
-        </View>
-      )}
-      {professionals.map((psych) => (
-        <TouchableOpacity
-          key={psych.id}
-          style={[styles.psychCard, cardShadow]}
-          activeOpacity={0.85}
-          onPress={() => openProfessional(psych)}
-        >
-          <View style={styles.psychInfo}>
-            <Text style={[styles.psychName, { color: colors.text }]}>{psych.name}</Text>
-            <Text style={[styles.psychSpecialty, { color: colors.textSecondary }]}>{psych.specialty}</Text>
-            <Text style={[styles.psychRating, { color: colors.text }]}>
-              {'\u2B50'} {psych.rating}  \u00B7  {psych.accepting ? 'Disponible' : 'Sin cupos'}
-            </Text>
-          </View>
-          <Text style={[styles.psychLink, { color: colors.primary }]}>Ver perfil</Text>
-        </TouchableOpacity>
-      ))}
-
       {/* Wellness tips */}
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Para tu bienestar</Text>
@@ -368,6 +349,49 @@ export default function HomeScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Directorio de profesionales (carousel) */}
+      {loaded && professionals.length > 0 && (
+        <>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {hasPsych ? 'Descubrí otros profesionales' : 'Encontrá tu profesional'}
+            </Text>
+            {!hasPsych && (
+              <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+                Conectate con un psicólogo desde la app
+              </Text>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profRow}>
+            {professionals.map((psych) => (
+              <TouchableOpacity
+                key={psych.id}
+                style={[styles.profCarouselCard, cardShadow]}
+                activeOpacity={0.85}
+                onPress={() => openProfessional(psych)}
+              >
+                <View style={[styles.profAvatar, { backgroundColor: colors.accent }]}>
+                  <Text style={[styles.profAvatarText, { color: colors.primary }]}>
+                    {psych.name?.replace('Lic. ', '').split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
+                  </Text>
+                </View>
+                <Text style={[styles.profCardName, { color: colors.text }]} numberOfLines={1}>{psych.name}</Text>
+                <Text style={[styles.profCardSpec, { color: colors.textSecondary }]} numberOfLines={2}>{psych.specialty}</Text>
+                <View style={styles.profCardFooter}>
+                  <Text style={[styles.profCardRating, { color: colors.text }]}>{`⭐ ${psych.rating}`}</Text>
+                  <Text style={[styles.profCardStatus, { color: psych.accepting ? colors.success : colors.textSecondary }]}>
+                    {psych.accepting ? 'Disponible' : 'Sin cupos'}
+                  </Text>
+                </View>
+                <View style={[styles.profCardBtn, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.profCardBtnText}>Ver perfil</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       {/* Mood Registration Modal */}
       <MoodRegistrationModal
@@ -592,6 +616,71 @@ const styles = StyleSheet.create({
   },
   psychLink: {
     fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+
+  // Professionals carousel
+  sectionSub: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+    marginTop: 2,
+  },
+  profRow: {
+    gap: 12,
+    paddingBottom: 4,
+    marginBottom: 20,
+  },
+  profCarouselCard: {
+    width: 210,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+  },
+  profAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profAvatarText: {
+    fontSize: 16,
+    fontFamily: 'PlayfairDisplay_700Bold',
+  },
+  profCardName: {
+    fontSize: 15,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  profCardSpec: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+    marginTop: 2,
+    minHeight: 34,
+  },
+  profCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  profCardRating: {
+    fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  profCardStatus: {
+    fontSize: 12,
+    fontFamily: 'Outfit_500Medium',
+  },
+  profCardBtn: {
+    borderRadius: 12,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  profCardBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontFamily: 'Outfit_600SemiBold',
   },
 
