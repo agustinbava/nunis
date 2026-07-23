@@ -11,13 +11,17 @@ interface Props {
 }
 
 function AnimatedBackground({ children }: { children: React.ReactNode }) {
-  const scale = React.useRef(new Animated.Value(1.12)).current;
+  // En web arrancamos ya en 1.0 y NO animamos: la animación JS (useNativeDriver
+  // no está disponible en web) re-renderiza la imagen ~60fps durante 30s y, con
+  // varias pantallas de tabs montadas a la vez, satura el hilo y genera parpadeo.
+  const scale = React.useRef(new Animated.Value(Platform.OS === 'web' ? 1.0 : 1.12)).current;
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     Animated.timing(scale, {
       toValue: 1.0,
       duration: 30000,
-      useNativeDriver: Platform.OS !== 'web',
+      useNativeDriver: true,
     }).start();
   }, []);
 
